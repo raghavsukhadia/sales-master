@@ -13,6 +13,7 @@ const PROTECTED_PATHS = [
   "/visits",
   "/followups",
   "/opportunities",
+  "/log-visit",
 ];
 
 export async function proxy(request: NextRequest) {

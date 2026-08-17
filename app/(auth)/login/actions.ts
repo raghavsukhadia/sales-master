@@ -38,8 +38,13 @@ export async function login(formData: FormData) {
     redirect("/dashboard");
   }
 
-  // Salesmen use WhatsApp, not this web app, per ADR-005 -- don't let
-  // their session persist into a dashboard that doesn't exist for them.
+  if (profile.role === "salesman") {
+    // ADR-005 (Revised): WhatsApp stays primary, but a salesman can now
+    // fall back to this minimal web visit-logging form.
+    redirect("/log-visit");
+  }
+
+  // Unreachable given the user_role enum, but don't guess if it ever is.
   await supabase.auth.signOut();
-  redirect(`/login?notice=${encodeURIComponent("salesman")}`);
+  redirect(`/login?notice=${encodeURIComponent("access-denied")}`);
 }

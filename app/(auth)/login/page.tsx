@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 
 const NOTICES: Record<string, string> = {
-  salesman: "This app is for management use. Please use WhatsApp to log visits.",
   "access-denied": "Your account isn't set up for web access. Contact an admin.",
 };
 
@@ -28,7 +27,7 @@ export default async function LoginPage({
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Sign in</CardTitle>
-          <CardDescription>Admin and manager access only.</CardDescription>
+          <CardDescription>Sign in to continue.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={login} className="flex flex-col gap-4">

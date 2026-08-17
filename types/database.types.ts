@@ -338,6 +338,7 @@ export type Database = {
           phone_number: string | null
           pincode: string | null
           primary_salesman_id: string | null
+          source: Database["public"]["Enums"]["visit_source"]
           state: string | null
           status_key: string
           updated_at: string
@@ -359,6 +360,7 @@ export type Database = {
           phone_number?: string | null
           pincode?: string | null
           primary_salesman_id?: string | null
+          source?: Database["public"]["Enums"]["visit_source"]
           state?: string | null
           status_key?: string
           updated_at?: string
@@ -380,6 +382,7 @@ export type Database = {
           phone_number?: string | null
           pincode?: string | null
           primary_salesman_id?: string | null
+          source?: Database["public"]["Enums"]["visit_source"]
           state?: string | null
           status_key?: string
           updated_at?: string
@@ -464,6 +467,7 @@ export type Database = {
           id: string
           priority: Database["public"]["Enums"]["priority_level"]
           salesman_id: string
+          source: Database["public"]["Enums"]["visit_source"]
           status: Database["public"]["Enums"]["followup_status"]
           updated_at: string
         }
@@ -479,6 +483,7 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["priority_level"]
           salesman_id: string
+          source?: Database["public"]["Enums"]["visit_source"]
           status?: Database["public"]["Enums"]["followup_status"]
           updated_at?: string
         }
@@ -494,6 +499,7 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["priority_level"]
           salesman_id?: string
+          source?: Database["public"]["Enums"]["visit_source"]
           status?: Database["public"]["Enums"]["followup_status"]
           updated_at?: string
         }
@@ -804,6 +810,7 @@ export type Database = {
           longitude: number | null
           notes: string | null
           salesman_id: string
+          source: Database["public"]["Enums"]["visit_source"]
           updated_at: string
           visit_date: string
           whatsapp_session_id: string | null
@@ -821,6 +828,7 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           salesman_id: string
+          source?: Database["public"]["Enums"]["visit_source"]
           updated_at?: string
           visit_date?: string
           whatsapp_session_id?: string | null
@@ -838,6 +846,7 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           salesman_id?: string
+          source?: Database["public"]["Enums"]["visit_source"]
           updated_at?: string
           visit_date?: string
           whatsapp_session_id?: string | null
@@ -892,6 +901,7 @@ export type Database = {
           salesman_id: string | null
           sender_number: string
           session_id: string | null
+          source: Database["public"]["Enums"]["visit_source"]
           updated_at: string
           value: string | null
         }
@@ -913,6 +923,7 @@ export type Database = {
           salesman_id?: string | null
           sender_number: string
           session_id?: string | null
+          source?: Database["public"]["Enums"]["visit_source"]
           updated_at?: string
           value?: string | null
         }
@@ -934,6 +945,7 @@ export type Database = {
           salesman_id?: string | null
           sender_number?: string
           session_id?: string | null
+          source?: Database["public"]["Enums"]["visit_source"]
           updated_at?: string
           value?: string | null
         }
@@ -1023,6 +1035,7 @@ export type Database = {
         | "ignored"
       priority_level: "low" | "medium" | "high"
       user_role: "admin" | "manager" | "salesman"
+      visit_source: "web" | "whatsapp"
       whatsapp_session_status: "open" | "closed"
     }
     CompositeTypes: {
@@ -1170,6 +1183,7 @@ export const Constants = {
       ],
       priority_level: ["low", "medium", "high"],
       user_role: ["admin", "manager", "salesman"],
+      visit_source: ["web", "whatsapp"],
       whatsapp_session_status: ["open", "closed"],
     },
   },

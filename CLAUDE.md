@@ -1671,6 +1671,11 @@ Never commit `.env` files.
 
 # 53. Development Roadmap
 
+> **Note:** ADR-005 was revised after Phase 1 (MessageAutoSender
+> integration) shipped, adding a minimal salesman-facing web
+> visit-logging form as a secondary fallback to WhatsApp. See §55
+> ADR-005 (Revised) for scope and constraints.
+
 ## Phase 0 — Foundation
 
 - [ ] Create Next.js project
@@ -1936,15 +1941,52 @@ Reason:
 
 ---
 
-## ADR-005 — No Separate Salesman App
+## ADR-005 (Revised) — WhatsApp-Primary, Lightweight Web Fallback for Salesmen
 
-Do not build a dedicated mobile app for salesmen initially.
+Original decision: no salesman-facing app, WhatsApp only.
 
-Reason:
+Revision: WhatsApp remains the primary and preferred salesman interface.
+A minimal web-based visit-logging form is added as a secondary option for
+salesmen who cannot or do not use WhatsApp integration (e.g. provider
+plan limitations, salesman preference).
+
+This is NOT a CRM. It must NOT grow into:
+
+- Dealer list browsing/management
+- Pipeline/opportunity management UI
+- Analytics or reporting for salesmen
+
+It must remain limited to:
+
+- Search existing dealer OR create new dealer (minimal duplicate-check UI)
+- Log a visit: notes, product interest, follow-up
+- Upload a photo (visiting card / dealer shop)
+- Record/upload a voice note (stored for later AI processing — Phase 2
+  transcription/extraction is not built yet, so voice notes are stored
+  with processing_status = 'received' and sit alongside WhatsApp voice
+  messages in the same processing queue once Phase 2 ships)
+- Share location (browser geolocation)
+
+Both channels (WhatsApp and web form) write to the same visits/dealers/
+followups/attachments tables, distinguished by a source column
+('whatsapp' | 'web'). Web-submitted structured fields (dealer, notes,
+product interest, follow-up) skip AI extraction since they're already
+structured. Uploaded photos and voice notes from the web form follow
+the exact same storage and processing pipeline as WhatsApp media —
+reuse existing upload/storage logic, don't duplicate it.
+
+Reason (original decision, still primary):
 
 The primary product goal is to eliminate CRM friction.
 
 WhatsApp is already familiar to the sales team.
+
+Reason (for this revision):
+
+Some salesmen cannot or do not reliably use the WhatsApp integration.
+Rather than blocking them entirely, a narrow, purpose-built form covers
+the same core loop (visit + dealer + follow-up) without reintroducing
+CRM complexity.
 
 ---
 
