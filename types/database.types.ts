@@ -878,7 +878,7 @@ export type Database = {
           caption: string | null
           channel_id: string
           created_at: string
-          direction: Database["public"]["Enums"]["message_direction"]
+          direction: string
           external_message_id: string
           file_name: string | null
           file_path: string | null
@@ -899,7 +899,7 @@ export type Database = {
           caption?: string | null
           channel_id: string
           created_at?: string
-          direction: Database["public"]["Enums"]["message_direction"]
+          direction: string
           external_message_id: string
           file_name?: string | null
           file_path?: string | null
@@ -920,7 +920,7 @@ export type Database = {
           caption?: string | null
           channel_id?: string
           created_at?: string
-          direction?: Database["public"]["Enums"]["message_direction"]
+          direction?: string
           external_message_id?: string
           file_name?: string | null
           file_path?: string | null
@@ -1015,7 +1015,6 @@ export type Database = {
         | "browser_location"
         | "manual"
         | "geocoded"
-      message_direction: "inbound" | "outbound"
       message_processing_status:
         | "received"
         | "processing"
@@ -1162,7 +1161,6 @@ export const Constants = {
         "manual",
         "geocoded",
       ],
-      message_direction: ["inbound", "outbound"],
       message_processing_status: [
         "received",
         "processing",

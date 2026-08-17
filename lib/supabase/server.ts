@@ -19,8 +19,8 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Server Components can't set cookies; safe to ignore once
-            // session refresh is handled by middleware (not yet added).
+            // Server Components can't set cookies; safe to ignore since
+            // middleware.ts refreshes the session on every request.
           }
         },
       },
