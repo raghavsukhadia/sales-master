@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { SalesMasterLogo } from "@/components/branding/sales-master-logo";
 import { Button } from "@/components/ui/button";
 import { signOut } from "./actions";
 
@@ -44,8 +45,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-3">
-        <nav className="flex gap-4 text-sm">
+      <header className="flex items-center gap-6 border-b px-6 py-3">
+        <SalesMasterLogo size="sm" />
+        <nav className="flex flex-1 flex-wrap gap-4 text-sm">
           {NAV_ITEMS.map((item) => (
             <Link key={item.href} href={item.href} className="hover:underline">
               {item.label}

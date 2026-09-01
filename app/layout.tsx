@@ -17,6 +17,10 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 export const metadata: Metadata = {
   title: "Sales Master",
   description: "Field sales visit logging for your team",
+  icons: {
+    icon: "/sales-master-logo.png",
+    apple: "/sales-master-logo.png",
+  },
   ...(appUrl ? { metadataBase: new URL(appUrl) } : {}),
 };
 

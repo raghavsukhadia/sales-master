@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SalesMasterLogo } from "@/components/branding/sales-master-logo";
 import { AppHeader } from "@/components/salesman/app-header";
 import { NavItem } from "@/components/salesman/nav-item";
 import { NavigationDrawer } from "@/components/salesman/navigation-drawer";
@@ -67,9 +68,9 @@ export function SalesmanNav({ salesmanName, roleLabel, signOutAction }: Salesman
       <AppHeader menuOpen={drawerOpen} onMenuToggle={() => setDrawerOpen((open) => !open)} />
 
       <NavigationDrawer open={drawerOpen} onClose={closeDrawer}>
-        <div className="flex flex-col gap-1 border-b border-border px-4 py-4">
-          <p className="text-base font-semibold text-foreground">Sales Master</p>
-          <div className="mt-3 flex items-center gap-3">
+        <div className="flex flex-col gap-3 border-b border-border px-4 py-4">
+          <SalesMasterLogo size="md" />
+          <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
               {initials}
             </div>

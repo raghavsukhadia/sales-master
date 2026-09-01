@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { login } from "./actions";
+import { SalesMasterLogo } from "@/components/branding/sales-master-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,10 +46,11 @@ export default async function LoginPage({
   const noticeMessage = notice ? (NOTICES[notice] ?? NOTICES["access-denied"]) : undefined;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-black">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 p-4 dark:bg-black">
+      <SalesMasterLogo size="lg" priority className="mb-6" />
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sales Master</CardTitle>
+        <CardHeader className="text-center">
+          <CardTitle className="sr-only">Sales Master</CardTitle>
           <CardDescription>Sign in to record dealer visits.</CardDescription>
         </CardHeader>
         <CardContent>
