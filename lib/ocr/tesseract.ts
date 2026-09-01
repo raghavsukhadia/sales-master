@@ -1,7 +1,7 @@
 import "server-only";
 import { createWorker, type Worker } from "tesseract.js";
 
-const LANGUAGES = "eng+hin";
+const LANGUAGES = "eng";
 
 export interface OcrRecognitionResult {
   text: string;

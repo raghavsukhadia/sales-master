@@ -4,19 +4,36 @@ import { useRef } from "react";
 import { Camera, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { ClientOcrPhase } from "@/lib/ocr/recognize-visiting-card-client";
 
 interface ScanCardPanelProps {
   cardPreviews: string[];
   scanning: boolean;
+  scanPhase: ClientOcrPhase | null;
   scanComplete: boolean;
   scanError: string | null;
   onPhotosSelected: (files: FileList | null) => void;
   onRetake: () => void;
 }
 
+function scanStatusLabel(scanPhase: ClientOcrPhase | null): string {
+  if (scanPhase === "loading") {
+    return "Preparing scanner…";
+  }
+  return "Reading card…";
+}
+
+function scanStatusHint(scanPhase: ClientOcrPhase | null): string | null {
+  if (scanPhase === "loading") {
+    return "First scan may take 20–30 seconds on this device.";
+  }
+  return null;
+}
+
 export function ScanCardPanel({
   cardPreviews,
   scanning,
+  scanPhase,
   scanComplete,
   scanError,
   onPhotosSelected,
@@ -81,7 +98,14 @@ export function ScanCardPanel({
         {scanning ? (
           <>
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <span className="text-sm font-medium text-primary">Reading card…</span>
+            <span className="text-sm font-medium text-primary">
+              {scanStatusLabel(scanPhase)}
+            </span>
+            {scanStatusHint(scanPhase) ? (
+              <span className="max-w-[240px] text-center text-xs text-muted-foreground">
+                {scanStatusHint(scanPhase)}
+              </span>
+            ) : null}
           </>
         ) : (
           <>

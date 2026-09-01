@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { CatalogProduct } from "@/lib/types/catalog";
 import { RecordVisitForm } from "./record-visit-form";
 
+export const maxDuration = 60;
+
 export const metadata: Metadata = {
   title: "Record Visit",
 };

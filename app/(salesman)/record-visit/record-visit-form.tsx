@@ -2,11 +2,18 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  scanVisitingCardAction,
+  matchScannedCardAction,
   searchDealersAction,
   lookupDealerByPhoneAction,
   submitRecordVisitAction,
 } from "./actions";
+import { parseVisitingCardTextWithMeta } from "@/lib/business/visiting-card-parser";
+import { visitingCardExtractionToFormFields } from "@/lib/validations/visiting-card-extraction";
+import {
+  recognizeVisitingCardClient,
+  resetVisitingCardOcrWorker,
+  type ClientOcrPhase,
+} from "@/lib/ocr/recognize-visiting-card-client";
 import {
   canSubmitOrderStepFromLines,
   countFilledOrderLines,
@@ -60,6 +67,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
   const [cardPhotos, setCardPhotos] = useState<File[]>([]);
   const [cardPreviews, setCardPreviews] = useState<string[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [scanPhase, setScanPhase] = useState<ClientOcrPhase | null>(null);
   const [scanComplete, setScanComplete] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -152,27 +160,39 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
 
   async function runScan(photos: File[]) {
     setScanning(true);
+    setScanPhase("loading");
     setScanError(null);
 
-    const formData = new FormData();
-    photos.forEach((file, index) => {
-      formData.set(`cardImage${index}`, file);
-    });
+    try {
+      const ocr = await recognizeVisitingCardClient(photos, setScanPhase);
 
-    const result = await scanVisitingCardAction(formData);
-    setScanning(false);
+      if (!ocr.text.trim()) {
+        setScanError("Couldn't read the card — try better lighting or retake the photo.");
+        setScanComplete(false);
+        return;
+      }
 
-    if (!result.success || !result.fields) {
+      const parsed = parseVisitingCardTextWithMeta(ocr.text, ocr.confidence);
+      const fields = visitingCardExtractionToFormFields(parsed.extraction, {
+        phones: parsed.phones,
+        fieldConfidence: parsed.fieldConfidence,
+      });
+
+      const { matchedDealer } = await matchScannedCardAction(parsed.phones);
+
+      setDraft(draftFromFields(fields));
+      setFieldConfidence(fields.fieldConfidence ?? {});
+      setScanComplete(true);
+      if (matchedDealer) {
+        setDuplicateDealer(matchedDealer);
+      }
+    } catch {
+      await resetVisitingCardOcrWorker();
       setScanError("Couldn't read the card — try better lighting or retake the photo.");
       setScanComplete(false);
-      return;
-    }
-
-    setDraft(draftFromFields(result.fields));
-    setFieldConfidence(result.fields.fieldConfidence ?? {});
-    setScanComplete(true);
-    if (result.matchedDealer) {
-      setDuplicateDealer(result.matchedDealer);
+    } finally {
+      setScanning(false);
+      setScanPhase(null);
     }
   }
 
@@ -382,6 +402,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
               <ScanCardPanel
                 cardPreviews={cardPreviews}
                 scanning={scanning}
+                scanPhase={scanPhase}
                 scanComplete={scanComplete}
                 scanError={scanError}
                 onPhotosSelected={(files) => void handleCardPhotoChange(files)}

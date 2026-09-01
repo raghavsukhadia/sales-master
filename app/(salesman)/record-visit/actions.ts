@@ -48,6 +48,39 @@ export interface ScanVisitingCardResult {
   matchedDealer?: DealerSearchResult | null;
 }
 
+async function matchDealerByPhones(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  phones: string[],
+): Promise<DealerSearchResult | null> {
+  for (const phone of phones) {
+    const match = await findDealerByExactPhone(supabase, phone);
+    if (match) return match;
+  }
+  return null;
+}
+
+/** Fast server lookup after client-side OCR + parsing. */
+export async function matchScannedCardAction(
+  phones: string[],
+): Promise<{ matchedDealer: DealerSearchResult | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { matchedDealer: null };
+  }
+
+  const { data: salesmanId } = await supabase.rpc("current_salesman_id");
+  if (!salesmanId) {
+    return { matchedDealer: null };
+  }
+
+  const matchedDealer = await matchDealerByPhones(supabase, phones);
+  return { matchedDealer };
+}
+
+/** Server-side OCR fallback (slow on Vercel). Prefer client OCR in record-visit-form. */
 export async function scanVisitingCardAction(formData: FormData): Promise<ScanVisitingCardResult> {
   const supabase = await createClient();
   const {
@@ -92,10 +125,7 @@ export async function scanVisitingCardAction(formData: FormData): Promise<ScanVi
       : result.data.phone
         ? [result.data.phone]
         : [];
-  for (const phone of phonesToCheck) {
-    matchedDealer = await findDealerByExactPhone(supabase, phone);
-    if (matchedDealer) break;
-  }
+  matchedDealer = await matchDealerByPhones(supabase, phonesToCheck);
 
   return {
     success: true,
