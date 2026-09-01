@@ -1,8 +1,19 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
+import type { VisitAttachment } from "@/lib/types/visit-history";
 
 const BUCKET = "visit-attachments";
+
+export const DEFAULT_ATTACHMENT_SIGNED_URL_EXPIRY_SECONDS = 3600;
+
+export interface AttachmentStorageRow {
+  id: string;
+  storage_bucket: string;
+  file_path: string;
+  file_name: string | null;
+  mime_type: string | null;
+}
 
 export interface UploadVisitAttachmentParams {
   userId: string;
@@ -56,4 +67,51 @@ export async function uploadVisitAttachment(
   }
 
   return { ok: true, path };
+}
+
+export async function listVisitImageAttachments(
+  supabase: SupabaseClient<Database>,
+  visitId: string,
+): Promise<AttachmentStorageRow[]> {
+  const { data, error } = await supabase
+    .from("attachments")
+    .select("id, storage_bucket, file_path, file_name, mime_type")
+    .eq("visit_id", visitId)
+    .like("mime_type", "image/%")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("[listVisitImageAttachments] query failed", error);
+    return [];
+  }
+
+  return data ?? [];
+}
+
+export async function createAttachmentSignedUrls(
+  supabase: SupabaseClient<Database>,
+  rows: AttachmentStorageRow[],
+  expiresInSeconds = DEFAULT_ATTACHMENT_SIGNED_URL_EXPIRY_SECONDS,
+): Promise<VisitAttachment[]> {
+  const attachments: VisitAttachment[] = [];
+
+  for (const row of rows) {
+    const { data, error } = await supabase.storage
+      .from(row.storage_bucket)
+      .createSignedUrl(row.file_path, expiresInSeconds);
+
+    if (error || !data?.signedUrl) {
+      console.error("[createAttachmentSignedUrls] signed URL failed", error);
+      continue;
+    }
+
+    attachments.push({
+      id: row.id,
+      fileName: row.file_name,
+      mimeType: row.mime_type,
+      url: data.signedUrl,
+    });
+  }
+
+  return attachments;
 }

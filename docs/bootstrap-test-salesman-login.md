@@ -1,12 +1,9 @@
 # Bootstrapping a test salesman web login
 
-Salesmen normally have no web login at all (WhatsApp only, per the
-original ADR-005) — `salesmen.user_id` is nullable for exactly that
-reason. To click through the new `/log-visit` form yourself in a browser,
-you need one salesman with both a `public.users` row (`role = 'salesman'`)
-and a linked `salesmen` row. This mirrors
-`docs/bootstrap-first-admin.md`, just with a different role and an extra
-linking step.
+Salesmen normally interact via WhatsApp (ADR-005). The web fallback at
+`/record-visit` requires a `public.users` row (`role = 'salesman'`) linked
+to a `salesmen` row. This mirrors `docs/bootstrap-first-admin.md`, with an
+extra linking step.
 
 ## Steps
 
@@ -22,9 +19,7 @@ linking step.
    from auth.users
    where email = 'salesman-test@example.com';
 
-   -- If you already have a salesmen row (e.g. the "Piyush Pandagre" one
-   -- created earlier for webhook testing), link it instead of inserting
-   -- a new one:
+   -- If you already have a salesmen row (e.g. created for webhook testing), link it:
    update public.salesmen
    set user_id = (select id from auth.users where email = 'salesman-test@example.com')
    where phone_number = '917440515450';
@@ -35,9 +30,8 @@ linking step.
    -- from auth.users where email = 'salesman-test@example.com';
    ```
 
-3. **Sign in** at `/login` with that email/password. You should land
-   directly on `/log-visit` (no redirect to `/dashboard` — that's
-   admin/manager only).
+3. **Sign in** at `/login` with that email/password. You should land on
+   `/record-visit` (admin/manager accounts go to `/dashboard`).
 
 If you sign in with a `salesman`-role account that has no linked
 `salesmen` row, the page will render but show "Your account isn't linked

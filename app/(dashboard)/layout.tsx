@@ -32,9 +32,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     .eq("id", user.id)
     .single();
 
-  // Salesmen have no dashboard experience per ADR-005; a session that
-  // somehow lands here without an admin/manager profile gets bounced back.
-  if (!profile || (profile.role !== "admin" && profile.role !== "manager")) {
+  if (!profile) {
+    redirect("/login");
+  }
+  if (profile.role === "salesman") {
+    redirect("/record-visit");
+  }
+  if (profile.role !== "admin" && profile.role !== "manager") {
     redirect("/login");
   }
 

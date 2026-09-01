@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { login } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 
 const NOTICES: Record<string, string> = {
   "access-denied": "Your account isn't set up for web access. Contact an admin.",
@@ -19,6 +21,26 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string; notice?: string }>;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role === "admin" || profile?.role === "manager") {
+      redirect("/dashboard");
+    }
+    if (profile?.role === "salesman") {
+      redirect("/record-visit");
+    }
+  }
+
   const { error, notice } = await searchParams;
   const noticeMessage = notice ? (NOTICES[notice] ?? NOTICES["access-denied"]) : undefined;
 
@@ -26,8 +48,8 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-black">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>Sign in to continue.</CardDescription>
+          <CardTitle>Sales Master</CardTitle>
+          <CardDescription>Sign in to record dealer visits.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={login} className="flex flex-col gap-4">

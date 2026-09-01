@@ -5,11 +5,15 @@ import "server-only";
  * `server-only` import makes it a build error to pull this into any
  * client bundle, so the API key can never reach the browser.
  *
- * NOTE: the request body shape below (channelId/receiverNumber/itemType/
- * value) is inferred from symmetry with the confirmed webhook payload
- * schema (CLAUDE.md §19), not confirmed against MessageAutoSender's
- * Swagger docs for POST /api/v1/message/create specifically -- that
- * endpoint's exact schema is still an open question (see summary).
+ * CONFIRMED (webhook ingest): id, channelId, receiverNumber, senderNumber,
+ * boundType, itemType, value, time, caption, filename, filePath.
+ *
+ * UNKNOWN — POST /api/v1/message/create request schema was not available
+ * from MessageAutoSender Swagger in-repo. The body below
+ * (channelId / receiverNumber / itemType / value) is inferred from
+ * webhook field symmetry and must be verified against live docs before
+ * treating ack failures as application bugs. Auth header x-api-key is
+ * likewise inferred from common MAS patterns and is UNKNOWN until confirmed.
  */
 
 interface SendTextMessageParams {

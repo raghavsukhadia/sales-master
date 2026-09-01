@@ -336,6 +336,7 @@ export type Database = {
           longitude: number | null
           notes: string | null
           phone_number: string | null
+          phone_number_normalized: string | null
           pincode: string | null
           primary_salesman_id: string | null
           source: Database["public"]["Enums"]["visit_source"]
@@ -343,6 +344,7 @@ export type Database = {
           status_key: string
           updated_at: string
           whatsapp_number: string | null
+          whatsapp_number_normalized: string | null
         }
         Insert: {
           address?: string | null
@@ -358,6 +360,7 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           phone_number?: string | null
+          phone_number_normalized?: string | null
           pincode?: string | null
           primary_salesman_id?: string | null
           source?: Database["public"]["Enums"]["visit_source"]
@@ -365,6 +368,7 @@ export type Database = {
           status_key?: string
           updated_at?: string
           whatsapp_number?: string | null
+          whatsapp_number_normalized?: string | null
         }
         Update: {
           address?: string | null
@@ -380,6 +384,7 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           phone_number?: string | null
+          phone_number_normalized?: string | null
           pincode?: string | null
           primary_salesman_id?: string | null
           source?: Database["public"]["Enums"]["visit_source"]
@@ -387,6 +392,7 @@ export type Database = {
           status_key?: string
           updated_at?: string
           whatsapp_number?: string | null
+          whatsapp_number_normalized?: string | null
         }
         Relationships: [
           {
@@ -693,6 +699,7 @@ export type Database = {
           id: string
           is_active: boolean
           phone_number: string
+          phone_number_normalized: string | null
           updated_at: string
           user_id: string | null
         }
@@ -703,6 +710,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone_number: string
+          phone_number_normalized?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -713,6 +721,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone_number?: string
+          phone_number_normalized?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -755,6 +764,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      visit_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_number: number
+          product_id: string | null
+          product_name: string
+          quantity: number
+          unit: string
+          unit_price: number
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_number: number
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          unit?: string
+          unit_price: number
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_number?: number
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          unit?: string
+          unit_price?: number
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_order_items_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visit_products: {
         Row: {
@@ -813,6 +873,7 @@ export type Database = {
           source: Database["public"]["Enums"]["visit_source"]
           updated_at: string
           visit_date: string
+          visit_number: number
           whatsapp_session_id: string | null
         }
         Insert: {
@@ -831,6 +892,7 @@ export type Database = {
           source?: Database["public"]["Enums"]["visit_source"]
           updated_at?: string
           visit_date?: string
+          visit_number?: number
           whatsapp_session_id?: string | null
         }
         Update: {
@@ -848,6 +910,7 @@ export type Database = {
           salesman_id?: string
           source?: Database["public"]["Enums"]["visit_source"]
           updated_at?: string
+          visit_number?: number
           visit_date?: string
           whatsapp_session_id?: string | null
         }
@@ -1004,11 +1067,178 @@ export type Database = {
           },
         ]
       }
+      whatsapp_session_extractions: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_category: string | null
+          error_message: string | null
+          id: string
+          model: string | null
+          parsed_output: Json | null
+          processing_started_at: string | null
+          prompt_version: string
+          raw_output: string | null
+          schema_version: string
+          session_id: string
+          status: Database["public"]["Enums"]["session_extraction_status"]
+          updated_at: string
+          validation_errors: Json | null
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_category?: string | null
+          error_message?: string | null
+          id?: string
+          model?: string | null
+          parsed_output?: Json | null
+          processing_started_at?: string | null
+          prompt_version: string
+          raw_output?: string | null
+          schema_version: string
+          session_id: string
+          status?: Database["public"]["Enums"]["session_extraction_status"]
+          updated_at?: string
+          validation_errors?: Json | null
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_category?: string | null
+          error_message?: string | null
+          id?: string
+          model?: string | null
+          parsed_output?: Json | null
+          processing_started_at?: string | null
+          prompt_version?: string
+          raw_output?: string | null
+          schema_version?: string
+          session_id?: string
+          status?: Database["public"]["Enums"]["session_extraction_status"]
+          updated_at?: string
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_session_extractions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_session_business_resolutions: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          extraction_id: string
+          id: string
+          proposed_dealer_id: string | null
+          resolution: Json
+          resolved_follow_up_date: string | null
+          resolved_visit_date: string | null
+          resolver_version: string
+          schema_version: string
+          session_id: string
+          status: Database["public"]["Enums"]["business_resolution_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          extraction_id: string
+          id?: string
+          proposed_dealer_id?: string | null
+          resolution: Json
+          resolved_follow_up_date?: string | null
+          resolved_visit_date?: string | null
+          resolver_version: string
+          schema_version: string
+          session_id: string
+          status: Database["public"]["Enums"]["business_resolution_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          extraction_id?: string
+          id?: string
+          proposed_dealer_id?: string | null
+          resolution?: Json
+          resolved_follow_up_date?: string | null
+          resolved_visit_date?: string | null
+          resolver_version?: string
+          schema_version?: string
+          session_id?: string
+          status?: Database["public"]["Enums"]["business_resolution_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_session_business_resolutions_extraction_id_fkey"
+            columns: ["extraction_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_session_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_session_business_resolutions_proposed_dealer_id_fkey"
+            columns: ["proposed_dealer_id"]
+            isOneToOne: false
+            referencedRelation: "dealers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_session_business_resolutions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      assign_whatsapp_session: {
+        Args: {
+          p_salesman_id: string
+          p_message_at?: string
+          p_timeout_seconds?: number
+        }
+        Returns: string
+      }
+      claim_whatsapp_messages: {
+        Args: { batch_size?: number }
+        Returns: Database["public"]["Tables"]["whatsapp_messages"]["Row"][]
+      }
+      claim_whatsapp_sessions_for_extraction: {
+        Args: {
+          p_schema_version: string
+          p_prompt_version: string
+          p_timeout_seconds?: number
+          batch_size?: number
+          p_stale_processing_seconds?: number
+          p_max_attempts?: number
+        }
+        Returns: {
+          session_id: string
+          extraction_id: string
+        }[]
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1016,9 +1246,14 @@ export type Database = {
       current_salesman_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_manager: { Args: never; Returns: boolean }
+      normalize_indian_mobile: { Args: { input: string }; Returns: string }
     }
     Enums: {
       actor_type: "user" | "system" | "ai"
+      business_resolution_status:
+        | "ready_for_confirmation"
+        | "needs_clarification"
+        | "not_actionable"
       extraction_status: "pending" | "applied" | "rejected" | "needs_review"
       followup_status: "pending" | "completed" | "cancelled"
       interest_level: "low" | "medium" | "high"
@@ -1034,6 +1269,7 @@ export type Database = {
         | "failed"
         | "ignored"
       priority_level: "low" | "medium" | "high"
+      session_extraction_status: "pending" | "processing" | "succeeded" | "failed"
       user_role: "admin" | "manager" | "salesman"
       visit_source: "web" | "whatsapp"
       whatsapp_session_status: "open" | "closed"
@@ -1165,6 +1401,11 @@ export const Constants = {
   public: {
     Enums: {
       actor_type: ["user", "system", "ai"],
+      business_resolution_status: [
+        "ready_for_confirmation",
+        "needs_clarification",
+        "not_actionable",
+      ],
       extraction_status: ["pending", "applied", "rejected", "needs_review"],
       followup_status: ["pending", "completed", "cancelled"],
       interest_level: ["low", "medium", "high"],
@@ -1182,6 +1423,12 @@ export const Constants = {
         "ignored",
       ],
       priority_level: ["low", "medium", "high"],
+      session_extraction_status: [
+        "pending",
+        "processing",
+        "succeeded",
+        "failed",
+      ],
       user_role: ["admin", "manager", "salesman"],
       visit_source: ["web", "whatsapp"],
       whatsapp_session_status: ["open", "closed"],

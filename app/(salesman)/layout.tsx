@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { signOut } from "./actions";
+import { SalesmanNav } from "./salesman-nav";
 
 export default async function SalesmanLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
@@ -21,10 +21,6 @@ export default async function SalesmanLayout({ children }: { children: ReactNode
     .eq("id", user.id)
     .single();
 
-  // This route group is salesman-only (ADR-005 Revised). Admin/manager
-  // land back on their own dashboard rather than a salesman testing path
-  // here: current_salesman_id() would resolve to null for them (no
-  // salesmen row), which would break visit submission anyway.
   if (!profile) {
     redirect("/login");
   }
@@ -37,17 +33,18 @@ export default async function SalesmanLayout({ children }: { children: ReactNode
 
   const { data: salesmanId } = await supabase.rpc("current_salesman_id");
 
+  const { data: salesman } = salesmanId
+    ? await supabase.from("salesmen").select("full_name").eq("id", salesmanId).single()
+    : { data: null };
+
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
-      <header className="flex items-center justify-between border-b bg-background px-4 py-3">
-        <span className="text-sm font-medium">Log a Visit</span>
-        <form action={signOut}>
-          <Button type="submit" variant="outline" size="sm">
-            Sign out
-          </Button>
-        </form>
-      </header>
-      <main className="mx-auto w-full max-w-md flex-1 px-4 py-6">
+    <div className="flex min-h-screen flex-col bg-zinc-50">
+      <SalesmanNav
+        salesmanName={salesman?.full_name ?? "Salesman"}
+        roleLabel="Sales Executive"
+        signOutAction={signOut}
+      />
+      <main className="mx-auto w-full max-w-md flex-1 px-4 py-6 pb-28 md:max-w-5xl">
         {salesmanId ? (
           children
         ) : (

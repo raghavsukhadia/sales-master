@@ -41,7 +41,7 @@ export async function login(formData: FormData) {
   if (profile.role === "salesman") {
     // ADR-005 (Revised): WhatsApp stays primary, but a salesman can now
     // fall back to this minimal web visit-logging form.
-    redirect("/log-visit");
+    redirect("/record-visit");
   }
 
   // Unreachable given the user_role enum, but don't guess if it ever is.
