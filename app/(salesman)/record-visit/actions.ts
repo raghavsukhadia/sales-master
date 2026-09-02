@@ -1,7 +1,13 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { searchDealers, findDealerByExactPhone, type DealerSearchResult } from "@/lib/business/dealers";
+import {
+  searchDealers,
+  lookupDuplicateDealer,
+  type DealerSearchResult,
+  type DuplicateDealerLookupInput,
+  type DuplicateDealerLookupResult,
+} from "@/lib/business/dealers";
 import { matchDealer } from "@/lib/business/dealer-matching";
 import { uploadVisitAttachment } from "@/lib/business/attachments";
 import { extractFromVisitingCardImages } from "@/lib/ai/visiting-card-extractor";
@@ -25,19 +31,36 @@ export async function searchDealersAction(query: string): Promise<DealerSearchRe
   return searchDealers(supabase, query);
 }
 
+export async function lookupDuplicateDealerAction(
+  input: DuplicateDealerLookupInput,
+): Promise<DuplicateDealerLookupResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "no_match" };
+  }
+
+  const { data: salesmanId } = await supabase.rpc("current_salesman_id");
+  if (!salesmanId) {
+    return { status: "no_match" };
+  }
+
+  return lookupDuplicateDealer(supabase, input);
+}
+
 export async function lookupDealerByPhoneAction(
   phone: string,
 ): Promise<DealerSearchResult | null> {
   const trimmed = phone.trim();
   if (trimmed.length < 10) return null;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  return findDealerByExactPhone(supabase, trimmed);
+  const result = await lookupDuplicateDealerAction({ phone: trimmed });
+  if (result.status === "exact_match") {
+    return result.dealer;
+  }
+  return null;
 }
 
 export interface ScanVisitingCardResult {
@@ -46,41 +69,24 @@ export interface ScanVisitingCardResult {
   fields?: ReturnType<typeof visitingCardExtractionToFormFields>;
   extraction?: VisitingCardExtraction;
   matchedDealer?: DealerSearchResult | null;
+  duplicateLookup?: DuplicateDealerLookupResult;
 }
 
-async function matchDealerByPhones(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  phones: string[],
-): Promise<DealerSearchResult | null> {
-  for (const phone of phones) {
-    const match = await findDealerByExactPhone(supabase, phone);
-    if (match) return match;
-  }
-  return null;
+/** Duplicate lookup after Gemini extraction (used by scan flow). */
+export async function matchScannedCardAction(input: {
+  phones: string[];
+  businessName?: string;
+  city?: string;
+}): Promise<DuplicateDealerLookupResult> {
+  return lookupDuplicateDealerAction({
+    phones: input.phones,
+    phone: input.phones[0],
+    businessName: input.businessName,
+    city: input.city,
+  });
 }
 
-/** Fast server lookup after client-side OCR + parsing. */
-export async function matchScannedCardAction(
-  phones: string[],
-): Promise<{ matchedDealer: DealerSearchResult | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { matchedDealer: null };
-  }
-
-  const { data: salesmanId } = await supabase.rpc("current_salesman_id");
-  if (!salesmanId) {
-    return { matchedDealer: null };
-  }
-
-  const matchedDealer = await matchDealerByPhones(supabase, phones);
-  return { matchedDealer };
-}
-
-/** Server-side OCR fallback (slow on Vercel). Prefer client OCR in record-visit-form. */
+/** Extract dealer details from visiting card images via Gemini vision. */
 export async function scanVisitingCardAction(formData: FormData): Promise<ScanVisitingCardResult> {
   const supabase = await createClient();
   const {
@@ -118,14 +124,20 @@ export async function scanVisitingCardAction(formData: FormData): Promise<ScanVi
     return { success: false, error: result.message || "Could not read the visiting card." };
   }
 
-  let matchedDealer: DealerSearchResult | null = null;
   const phonesToCheck =
     result.phones.length > 0
       ? result.phones
       : result.data.phone
         ? [result.data.phone]
         : [];
-  matchedDealer = await matchDealerByPhones(supabase, phonesToCheck);
+  const duplicateLookup = await lookupDuplicateDealer(supabase, {
+    phones: phonesToCheck,
+    phone: phonesToCheck[0],
+    businessName: result.data.businessName ?? undefined,
+    city: result.data.city ?? undefined,
+  });
+  const matchedDealer =
+    duplicateLookup.status === "exact_match" ? duplicateLookup.dealer : null;
 
   return {
     success: true,
@@ -135,6 +147,7 @@ export async function scanVisitingCardAction(formData: FormData): Promise<ScanVi
     }),
     extraction: result.data,
     matchedDealer,
+    duplicateLookup,
   };
 }
 

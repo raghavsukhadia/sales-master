@@ -6,7 +6,6 @@ const nextConfig = {
       bodySizeLimit: "4mb",
     },
   },
-  serverExternalPackages: ["tesseract.js"],
 } satisfies NextConfig;
 
 export default nextConfig;

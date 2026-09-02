@@ -2,18 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  matchScannedCardAction,
+  scanVisitingCardAction,
   searchDealersAction,
-  lookupDealerByPhoneAction,
+  lookupDuplicateDealerAction,
   submitRecordVisitAction,
 } from "./actions";
-import { parseVisitingCardTextWithMeta } from "@/lib/business/visiting-card-parser";
-import { visitingCardExtractionToFormFields } from "@/lib/validations/visiting-card-extraction";
-import {
-  recognizeVisitingCardClient,
-  resetVisitingCardOcrWorker,
-  type ClientOcrPhase,
-} from "@/lib/ocr/recognize-visiting-card-client";
 import {
   canSubmitOrderStepFromLines,
   countFilledOrderLines,
@@ -29,7 +22,7 @@ import {
   type DealerDraftTouched,
 } from "@/lib/validations/dealer-draft";
 import { compressImageFile } from "@/lib/utils/compress-image";
-import type { DealerSearchResult } from "@/lib/business/dealers";
+import type { DealerSearchResult, DuplicateDealerLookupResult } from "@/lib/business/dealers";
 import type { OrderPlacement } from "@/lib/business/order-lines";
 import type { CatalogProduct } from "@/lib/types/catalog";
 import {
@@ -45,7 +38,7 @@ import { DealerModeSegment } from "@/components/salesman/dealer-mode-segment";
 import { ScanCardPanel } from "@/components/salesman/scan-card-panel";
 import { DealerVerifyPanel } from "@/components/salesman/dealer-verify-panel";
 import { DealerSearchPanel } from "@/components/salesman/dealer-search-panel";
-import { DuplicateDealerBanner } from "@/components/salesman/duplicate-dealer-banner";
+import { DuplicateDealerNotice } from "@/components/salesman/duplicate-dealer-banner";
 import { StickyFormCta } from "@/components/salesman/sticky-form-cta";
 import { VisitSuccessScreen } from "@/components/salesman/visit-success-screen";
 import { CompactDealerChip } from "@/components/salesman/compact-dealer-chip";
@@ -67,7 +60,6 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
   const [cardPhotos, setCardPhotos] = useState<File[]>([]);
   const [cardPreviews, setCardPreviews] = useState<string[]>([]);
   const [scanning, setScanning] = useState(false);
-  const [scanPhase, setScanPhase] = useState<ClientOcrPhase | null>(null);
   const [scanComplete, setScanComplete] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -75,6 +67,9 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
   const [searchResults, setSearchResults] = useState<DealerSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [duplicateDealer, setDuplicateDealer] = useState<DealerSearchResult | null>(null);
+  const [possibleDuplicateDealers, setPossibleDuplicateDealers] = useState<DealerSearchResult[]>(
+    [],
+  );
 
   const [orderPlacement, setOrderPlacement] = useState<OrderPlacement>(null);
   const [orderLines, setOrderLines] = useState<OrderLineRow[]>([createEmptyOrderLine()]);
@@ -108,22 +103,57 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [cardPhotos]);
 
-  const checkDuplicate = useCallback(async (phone: string) => {
-    if (phone.replace(/\D/g, "").length < 10) {
-      setDuplicateDealer(null);
+  function applyDuplicateLookup(result: DuplicateDealerLookupResult) {
+    if (result.status === "exact_match") {
+      setDuplicateDealer(result.dealer);
+      setPossibleDuplicateDealers([]);
       return;
     }
-    const match = await lookupDealerByPhoneAction(phone);
-    setDuplicateDealer(match);
+    if (result.status === "possible_matches") {
+      setDuplicateDealer(null);
+      setPossibleDuplicateDealers(result.candidates);
+      return;
+    }
+    setDuplicateDealer(null);
+    setPossibleDuplicateDealers([]);
+  }
+
+  const checkDuplicate = useCallback(async (currentDraft: DealerDraft) => {
+    const hasPhone =
+      currentDraft.phone.replace(/\D/g, "").length >= 10 ||
+      currentDraft.phones.some((phone) => phone.replace(/\D/g, "").length >= 10);
+    const hasName = currentDraft.dealerName.trim().length >= 2;
+
+    if (!hasPhone && !hasName) {
+      setDuplicateDealer(null);
+      setPossibleDuplicateDealers([]);
+      return;
+    }
+
+    const result = await lookupDuplicateDealerAction({
+      phone: currentDraft.phone,
+      phones: currentDraft.phones,
+      businessName: currentDraft.dealerName,
+      city: currentDraft.city,
+    });
+    applyDuplicateLookup(result);
   }, []);
 
   useEffect(() => {
     if (dealerEntryMode === "search" || resolvedDealer?.source === "existing") return;
     const timeout = setTimeout(() => {
-      void checkDuplicate(draft.phone);
+      void checkDuplicate(draft);
     }, 400);
     return () => clearTimeout(timeout);
-  }, [draft.phone, dealerEntryMode, resolvedDealer, checkDuplicate]);
+  }, [
+    draft.phone,
+    draft.phones,
+    draft.dealerName,
+    draft.city,
+    dealerEntryMode,
+    resolvedDealer,
+    checkDuplicate,
+  ]);
 
   function resetForm() {
     setStep(1);
@@ -137,6 +167,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
     setSearchQuery("");
     setSearchResults([]);
     setDuplicateDealer(null);
+    setPossibleDuplicateDealers([]);
     setOrderPlacement(null);
     setOrderLines([createEmptyOrderLine()]);
     setSubmitError(null);
@@ -160,39 +191,36 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
 
   async function runScan(photos: File[]) {
     setScanning(true);
-    setScanPhase("loading");
     setScanError(null);
 
     try {
-      const ocr = await recognizeVisitingCardClient(photos, setScanPhase);
+      const formData = new FormData();
+      photos.forEach((photo, index) => {
+        formData.set(`cardImage${index}`, photo);
+      });
 
-      if (!ocr.text.trim()) {
-        setScanError("Couldn't read the card — try better lighting or retake the photo.");
+      const result = await scanVisitingCardAction(formData);
+
+      if (!result.success || !result.fields) {
+        setScanError(
+          result.error ??
+            "Couldn't read the card — try better lighting or retake the photo.",
+        );
         setScanComplete(false);
         return;
       }
 
-      const parsed = parseVisitingCardTextWithMeta(ocr.text, ocr.confidence);
-      const fields = visitingCardExtractionToFormFields(parsed.extraction, {
-        phones: parsed.phones,
-        fieldConfidence: parsed.fieldConfidence,
-      });
-
-      const { matchedDealer } = await matchScannedCardAction(parsed.phones);
-
-      setDraft(draftFromFields(fields));
-      setFieldConfidence(fields.fieldConfidence ?? {});
+      setDraft(draftFromFields(result.fields));
+      setFieldConfidence(result.fields.fieldConfidence ?? {});
       setScanComplete(true);
-      if (matchedDealer) {
-        setDuplicateDealer(matchedDealer);
+      if (result.duplicateLookup) {
+        applyDuplicateLookup(result.duplicateLookup);
       }
     } catch {
-      await resetVisitingCardOcrWorker();
       setScanError("Couldn't read the card — try better lighting or retake the photo.");
       setScanComplete(false);
     } finally {
       setScanning(false);
-      setScanPhase(null);
     }
   }
 
@@ -215,11 +243,14 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
     setScanComplete(false);
     setScanError(null);
     setFieldConfidence({});
+    setDuplicateDealer(null);
+    setPossibleDuplicateDealers([]);
   }
 
   function handleUseExistingDealer(dealer: DealerSearchResult) {
     setResolvedDealer({ source: "existing", dealerId: dealer.id, snapshot: dealer });
     setDuplicateDealer(null);
+    setPossibleDuplicateDealers([]);
     setDealerEntryMode("search");
     setSelectedDealerFromSearch(dealer);
   }
@@ -394,6 +425,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
                   setDealerEntryMode(mode);
                   setResolvedDealer(null);
                   setDuplicateDealer(null);
+                  setPossibleDuplicateDealers([]);
                 }}
               />
             </div>
@@ -402,7 +434,6 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
               <ScanCardPanel
                 cardPreviews={cardPreviews}
                 scanning={scanning}
-                scanPhase={scanPhase}
                 scanComplete={scanComplete}
                 scanError={scanError}
                 onPhotosSelected={(files) => void handleCardPhotoChange(files)}
@@ -426,21 +457,29 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
               />
             ) : null}
 
+            {resolvedDealer?.source !== "existing" &&
+            (duplicateDealer || possibleDuplicateDealers.length > 0) &&
+            ((dealerEntryMode === "scan" && scanComplete) || dealerEntryMode === "manual") ? (
+              <DuplicateDealerNotice
+                exactMatch={duplicateDealer}
+                possibleMatches={possibleDuplicateDealers}
+                onUseExisting={handleUseExistingDealer}
+              />
+            ) : null}
+
             {(dealerEntryMode === "scan" && scanComplete) || dealerEntryMode === "manual" ? (
               <DealerVerifyPanel
                 draft={draft}
                 fieldConfidence={fieldConfidence}
                 showVerifyHeader={dealerEntryMode === "scan"}
                 touched={fieldTouched}
-                onChange={setDraft}
+                onChange={(patch) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    ...(typeof patch === "function" ? patch(prev) : patch),
+                  }))
+                }
                 onFieldBlur={handleFieldBlur}
-              />
-            ) : null}
-
-            {duplicateDealer && resolvedDealer?.source !== "existing" ? (
-              <DuplicateDealerBanner
-                dealer={duplicateDealer}
-                onUseExisting={() => handleUseExistingDealer(duplicateDealer)}
               />
             ) : null}
           </div>

@@ -2,7 +2,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { normalizeIndianMobile } from "@/lib/utils/phone";
-import { escapeIlike, matchDealer } from "@/lib/business/dealer-matching";
+import {
+  escapeIlike,
+  matchDealer,
+  type DealerMatchCandidate,
+} from "@/lib/business/dealer-matching";
 
 export interface DealerSearchResult {
   id: string;
@@ -107,4 +111,93 @@ export async function findDealerByExactPhone(
 
   const withVisit = await attachLastVisitDates(supabase, [dealer]);
   return withVisit[0] ?? null;
+}
+
+export interface DuplicateDealerLookupInput {
+  phone?: string;
+  phones?: string[];
+  businessName?: string;
+  city?: string;
+}
+
+export type DuplicateDealerLookupResult =
+  | { status: "exact_match"; dealer: DealerSearchResult }
+  | { status: "possible_matches"; candidates: DealerSearchResult[] }
+  | { status: "no_match" };
+
+const MAX_POSSIBLE_DUPLICATE_CANDIDATES = 5;
+
+function candidateToSearchResultBase(
+  candidate: DealerMatchCandidate,
+): Omit<DealerSearchResult, "last_visit_at"> {
+  return {
+    id: candidate.id,
+    business_name: candidate.business_name,
+    city: candidate.city,
+    state: candidate.state,
+    phone_number: candidate.phone_number,
+    address: null,
+  };
+}
+
+async function candidatesToSearchResults(
+  supabase: SupabaseClient<Database>,
+  candidates: DealerMatchCandidate[],
+): Promise<DealerSearchResult[]> {
+  return attachLastVisitDates(
+    supabase,
+    candidates.map(candidateToSearchResultBase),
+  );
+}
+
+/**
+ * Find an existing dealer while entering/scannning dealer details.
+ * Checks every phone on the card, then name + city via matchDealer.
+ */
+export async function lookupDuplicateDealer(
+  supabase: SupabaseClient<Database>,
+  input: DuplicateDealerLookupInput,
+): Promise<DuplicateDealerLookupResult> {
+  const phonesToTry = new Set<string>();
+  const primaryPhone = input.phone?.trim();
+  if (primaryPhone) phonesToTry.add(primaryPhone);
+  for (const phone of input.phones ?? []) {
+    const trimmed = phone.trim();
+    if (trimmed) phonesToTry.add(trimmed);
+  }
+
+  for (const phone of phonesToTry) {
+    const phoneResult = await matchDealer(supabase, { phone });
+    if (phoneResult.status === "exact_match") {
+      const dealers = await candidatesToSearchResults(supabase, [phoneResult.dealer]);
+      if (dealers[0]) {
+        return { status: "exact_match", dealer: dealers[0] };
+      }
+    }
+  }
+
+  const fullResult = await matchDealer(supabase, {
+    phone: primaryPhone || undefined,
+    businessName: input.businessName?.trim() || undefined,
+    city: input.city?.trim() || undefined,
+  });
+
+  if (fullResult.status === "exact_match") {
+    const dealers = await candidatesToSearchResults(supabase, [fullResult.dealer]);
+    if (dealers[0]) {
+      return { status: "exact_match", dealer: dealers[0] };
+    }
+  }
+
+  if (fullResult.status === "possible_matches" && fullResult.candidates.length > 0) {
+    const dealers = await candidatesToSearchResults(
+      supabase,
+      fullResult.candidates.slice(0, MAX_POSSIBLE_DUPLICATE_CANDIDATES),
+    );
+    if (dealers.length > 0) {
+      return { status: "possible_matches", candidates: dealers };
+    }
+  }
+
+  return { status: "no_match" };
 }

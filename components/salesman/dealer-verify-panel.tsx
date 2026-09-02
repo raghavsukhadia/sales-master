@@ -19,12 +19,16 @@ import { applyGeocodeToDraft } from "@/lib/utils/dealer-draft-geocode";
 import type { GeocodeDetails } from "@/lib/utils/reverse-geocode";
 import { LocationCapture } from "./location-capture";
 
+type DealerDraftPatch =
+  | Partial<DealerDraft>
+  | ((prev: DealerDraft) => Partial<DealerDraft>);
+
 interface DealerVerifyPanelProps {
   draft: DealerDraft;
   fieldConfidence: Record<string, number>;
   showVerifyHeader?: boolean;
   touched: DealerDraftTouched;
-  onChange: (draft: DealerDraft) => void;
+  onChange: (patch: DealerDraftPatch) => void;
   onFieldBlur: (field: keyof DealerDraftTouched) => void;
 }
 
@@ -54,7 +58,7 @@ export function DealerVerifyPanel({
   onChange,
   onFieldBlur,
 }: DealerVerifyPanelProps) {
-  const update = (patch: Partial<DealerDraft>) => onChange({ ...draft, ...patch });
+  const update = (patch: Partial<DealerDraft>) => onChange(patch);
 
   const dealerNameError = getDealerDraftFieldError("dealerName", draft, touched);
   const phoneError = getDealerDraftFieldError("phone", draft, touched);
@@ -63,7 +67,7 @@ export function DealerVerifyPanel({
   const pincodeError = getDealerDraftFieldError("pincode", draft, touched);
 
   function handleGeocodeApplied(details: GeocodeDetails) {
-    update(applyGeocodeToDraft(draft, details));
+    onChange((prev) => applyGeocodeToDraft(prev, details));
   }
 
   return (
@@ -135,6 +139,12 @@ export function DealerVerifyPanel({
         <FieldError message={phoneError} />
       </div>
 
+      <LocationCapture
+        location={draft.location}
+        onLocationChange={(location) => update({ location })}
+        onGeocodeApplied={handleGeocodeApplied}
+      />
+
       <div className="flex flex-col gap-2">
         <RequiredLabel htmlFor="address">Address</RequiredLabel>
         <Textarea
@@ -190,12 +200,6 @@ export function DealerVerifyPanel({
         <VerifyHint confidence={fieldConfidence.pincode} value={draft.pincode} />
         <FieldError message={pincodeError} />
       </div>
-
-      <LocationCapture
-        location={draft.location}
-        onLocationChange={(location) => update({ location })}
-        onGeocodeApplied={handleGeocodeApplied}
-      />
     </div>
   );
 }

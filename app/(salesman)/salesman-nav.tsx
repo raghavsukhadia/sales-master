@@ -9,22 +9,13 @@ import {
   History,
   LogOut,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SalesMasterLogo } from "@/components/branding/sales-master-logo";
-import { AppHeader } from "@/components/salesman/app-header";
+import { AppHeader, type SalesmanNavConfigItem } from "@/components/salesman/app-header";
 import { NavItem } from "@/components/salesman/nav-item";
 import { NavigationDrawer } from "@/components/salesman/navigation-drawer";
 
-interface NavConfigItem {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  enabled: boolean;
-  matchPaths?: string[];
-}
-
-const NAV_ITEMS: NavConfigItem[] = [
+const NAV_ITEMS: SalesmanNavConfigItem[] = [
   {
     href: "/record-visit",
     label: "Record Visit",
@@ -32,7 +23,13 @@ const NAV_ITEMS: NavConfigItem[] = [
     enabled: true,
     matchPaths: ["/record-visit"],
   },
-  { href: "/visit-history", label: "Visit History", icon: History, enabled: true, matchPaths: ["/visit-history"] },
+  {
+    href: "/visit-history",
+    label: "Visit History",
+    icon: History,
+    enabled: true,
+    matchPaths: ["/visit-history"],
+  },
   { href: "/reports", label: "Reports", icon: BarChart3, enabled: false },
   { href: "/our-details", label: "Our Details", icon: Building2, enabled: false },
 ];
@@ -58,26 +55,34 @@ export function SalesmanNav({ salesmanName, roleLabel, signOutAction }: Salesman
     setDrawerOpen(false);
   }
 
-  function isActive(item: NavConfigItem): boolean {
+  function isActive(item: SalesmanNavConfigItem): boolean {
     const paths = item.matchPaths ?? [item.href];
     return paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   }
 
   return (
     <>
-      <AppHeader menuOpen={drawerOpen} onMenuToggle={() => setDrawerOpen((open) => !open)} />
+      <AppHeader
+        menuOpen={drawerOpen}
+        onMenuToggle={() => setDrawerOpen((open) => !open)}
+        navItems={NAV_ITEMS}
+        isActive={isActive}
+        salesmanName={salesmanName}
+        roleLabel={roleLabel}
+        signOutAction={signOutAction}
+      />
 
       <NavigationDrawer open={drawerOpen} onClose={closeDrawer}>
-        <div className="flex flex-col gap-3 border-b border-border px-4 py-4">
-          <SalesMasterLogo size="md" />
+        <div className="border-b border-border px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
               {initials}
             </div>
-            <div className="min-w-0">
-              <p className="truncate font-medium text-foreground">{salesmanName}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold text-foreground">{salesmanName}</p>
               <p className="truncate text-sm text-muted-foreground">{roleLabel}</p>
             </div>
+            <SalesMasterLogo size="sm" className="h-9 shrink-0 max-w-[120px]" />
           </div>
         </div>
 

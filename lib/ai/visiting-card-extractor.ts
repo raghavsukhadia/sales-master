@@ -1,19 +1,16 @@
 import "server-only";
-import { parseVisitingCardTextWithMeta } from "@/lib/business/visiting-card-parser";
-import { recognizeVisitingCardText } from "@/lib/ocr/tesseract";
+import { extractWithGemini } from "@/lib/ai/gemini-visiting-card-extractor";
+import type { VisitingCardImageInput } from "@/lib/ai/gemini-visiting-card-extractor";
 import {
   VISITING_CARD_EXTRACTION_SCHEMA_VERSION,
   type VisitingCardExtraction,
 } from "@/lib/validations/visiting-card-extraction";
 import type { VisitingCardFieldConfidence } from "@/lib/business/visiting-card-parser";
 
-export const VISITING_CARD_EXTRACTION_METHOD = "tesseract-ocr" as const;
-export const VISITING_CARD_EXTRACTION_PROMPT_VERSION = "ocr-v1" as const;
+export const VISITING_CARD_EXTRACTION_METHOD = "gemini-vision" as const;
+export const VISITING_CARD_EXTRACTION_PROMPT_VERSION = "gemini-v1" as const;
 
-export type VisitingCardImageInput = {
-  mimeType: string;
-  base64: string;
-};
+export type { VisitingCardImageInput } from "@/lib/ai/gemini-visiting-card-extractor";
 
 export type VisitingCardExtractResult =
   | {
@@ -22,7 +19,7 @@ export type VisitingCardExtractResult =
       phones: string[];
       fieldConfidence: VisitingCardFieldConfidence;
       rawOutput: string;
-      model: typeof VISITING_CARD_EXTRACTION_METHOD;
+      model: string;
       promptVersion: typeof VISITING_CARD_EXTRACTION_PROMPT_VERSION;
       schemaVersion: typeof VISITING_CARD_EXTRACTION_SCHEMA_VERSION;
     }
@@ -30,7 +27,7 @@ export type VisitingCardExtractResult =
       ok: false;
       message: string;
       rawOutput: string | null;
-      model: typeof VISITING_CARD_EXTRACTION_METHOD;
+      model: string;
       promptVersion: typeof VISITING_CARD_EXTRACTION_PROMPT_VERSION;
       schemaVersion: typeof VISITING_CARD_EXTRACTION_SCHEMA_VERSION;
     };
@@ -38,55 +35,41 @@ export type VisitingCardExtractResult =
 export async function extractFromVisitingCardImages(
   images: VisitingCardImageInput[],
 ): Promise<VisitingCardExtractResult> {
-  const model = VISITING_CARD_EXTRACTION_METHOD;
+  const promptVersion = VISITING_CARD_EXTRACTION_PROMPT_VERSION;
+  const schemaVersion = VISITING_CARD_EXTRACTION_SCHEMA_VERSION;
 
   if (images.length === 0 || images.length > 2) {
     return {
       ok: false,
       message: "Provide 1 or 2 visiting card images",
       rawOutput: null,
-      model,
-      promptVersion: VISITING_CARD_EXTRACTION_PROMPT_VERSION,
-      schemaVersion: VISITING_CARD_EXTRACTION_SCHEMA_VERSION,
+      model: VISITING_CARD_EXTRACTION_METHOD,
+      promptVersion,
+      schemaVersion,
     };
   }
 
-  try {
-    const buffers = images.map((image) => Buffer.from(image.base64, "base64"));
-    const { text, confidence } = await recognizeVisitingCardText(buffers);
+  const result = await extractWithGemini(images);
 
-    if (!text.trim()) {
-      return {
-        ok: false,
-        message: "Could not read any text from the card image.",
-        rawOutput: text,
-        model,
-        promptVersion: VISITING_CARD_EXTRACTION_PROMPT_VERSION,
-        schemaVersion: VISITING_CARD_EXTRACTION_SCHEMA_VERSION,
-      };
-    }
-
-    const parsed = parseVisitingCardTextWithMeta(text, confidence);
-
-    return {
-      ok: true,
-      data: parsed.extraction,
-      phones: parsed.phones,
-      fieldConfidence: parsed.fieldConfidence,
-      rawOutput: text,
-      model,
-      promptVersion: VISITING_CARD_EXTRACTION_PROMPT_VERSION,
-      schemaVersion: VISITING_CARD_EXTRACTION_SCHEMA_VERSION,
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "OCR failed";
+  if (!result.ok) {
     return {
       ok: false,
-      message,
-      rawOutput: null,
-      model,
-      promptVersion: VISITING_CARD_EXTRACTION_PROMPT_VERSION,
-      schemaVersion: VISITING_CARD_EXTRACTION_SCHEMA_VERSION,
+      message: result.message,
+      rawOutput: result.rawOutput,
+      model: result.model,
+      promptVersion,
+      schemaVersion,
     };
   }
+
+  return {
+    ok: true,
+    data: result.data,
+    phones: result.phones,
+    fieldConfidence: result.fieldConfidence,
+    rawOutput: result.rawOutput,
+    model: result.model,
+    promptVersion,
+    schemaVersion,
+  };
 }

@@ -12,6 +12,7 @@ interface NavItemProps {
   disabled?: boolean;
   comingSoon?: boolean;
   onNavigate?: () => void;
+  variant?: "drawer" | "bar";
 }
 
 export function NavItem({
@@ -22,10 +23,14 @@ export function NavItem({
   disabled,
   comingSoon,
   onNavigate,
+  variant = "drawer",
 }: NavItemProps) {
+  const isBar = variant === "bar";
+
   const className = cn(
-    "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+    "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    isBar ? "px-3 py-2" : "min-h-11 w-full px-3 py-2.5",
     active && "bg-primary/10 text-primary",
     !active && !disabled && "text-foreground hover:bg-muted",
     disabled && "cursor-not-allowed text-muted-foreground opacity-60",
@@ -33,8 +38,8 @@ export function NavItem({
 
   const content = (
     <>
-      <Icon className="h-5 w-5 shrink-0" aria-hidden />
-      <span className="flex-1 truncate text-left">{label}</span>
+      <Icon className={cn("shrink-0", isBar ? "h-4 w-4" : "h-5 w-5")} aria-hidden />
+      <span className={cn("truncate text-left", !isBar && "flex-1")}>{label}</span>
       {comingSoon ? (
         <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
           Coming soon

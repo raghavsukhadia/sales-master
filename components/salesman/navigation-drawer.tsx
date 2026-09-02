@@ -31,7 +31,7 @@ export function NavigationDrawer({ open, onClose, children }: NavigationDrawerPr
     <>
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/40 transition-opacity duration-200",
+          "fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 md:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         aria-hidden={!open}
@@ -45,7 +45,7 @@ export function NavigationDrawer({ open, onClose, children }: NavigationDrawerPr
         aria-label="Navigation menu"
         aria-hidden={!open}
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-[min(85vw,320px)] max-w-full flex-col bg-white shadow-lg transition-transform duration-200 ease-out",
+          "fixed inset-y-0 right-0 z-50 flex w-[min(85vw,320px)] max-w-full flex-col bg-white shadow-lg transition-transform duration-200 ease-out md:hidden",
           "pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]",
           open ? "translate-x-0" : "pointer-events-none translate-x-full",
         )}

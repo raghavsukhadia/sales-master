@@ -1,49 +1,116 @@
 "use client";
 
 import { useRef } from "react";
-import { Camera, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
+import { Camera, CheckCircle2, ImageUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { ClientOcrPhase } from "@/lib/ocr/recognize-visiting-card-client";
 
 interface ScanCardPanelProps {
   cardPreviews: string[];
   scanning: boolean;
-  scanPhase: ClientOcrPhase | null;
   scanComplete: boolean;
   scanError: string | null;
   onPhotosSelected: (files: FileList | null) => void;
   onRetake: () => void;
 }
 
-function scanStatusLabel(scanPhase: ClientOcrPhase | null): string {
-  if (scanPhase === "loading") {
-    return "Preparing scanner…";
+function CardCaptureInputs({
+  cameraInputRef,
+  galleryInputRef,
+  onPhotosSelected,
+}: {
+  cameraInputRef: React.RefObject<HTMLInputElement | null>;
+  galleryInputRef: React.RefObject<HTMLInputElement | null>;
+  onPhotosSelected: (files: FileList | null) => void;
+}) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    onPhotosSelected(e.target.files);
+    e.target.value = "";
   }
-  return "Reading card…";
+
+  return (
+    <>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+    </>
+  );
 }
 
-function scanStatusHint(scanPhase: ClientOcrPhase | null): string | null {
-  if (scanPhase === "loading") {
-    return "First scan may take 20–30 seconds on this device.";
-  }
-  return null;
+function CardCaptureActions({
+  disabled,
+  cameraInputRef,
+  galleryInputRef,
+  className,
+}: {
+  disabled?: boolean;
+  cameraInputRef: React.RefObject<HTMLInputElement | null>;
+  galleryInputRef: React.RefObject<HTMLInputElement | null>;
+  className?: string;
+}) {
+  return (
+    <div className={cn("grid grid-cols-2 gap-3", className)}>
+      <button
+        type="button"
+        onClick={() => cameraInputRef.current?.click()}
+        disabled={disabled}
+        className={cn(
+          "flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-3 py-4 transition-colors hover:border-primary/50 hover:bg-primary/10",
+          disabled && "pointer-events-none opacity-70",
+        )}
+      >
+        <Camera className="h-8 w-8 text-primary" />
+        <span className="text-sm font-medium">Take photo</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => galleryInputRef.current?.click()}
+        disabled={disabled}
+        className={cn(
+          "flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-3 py-4 transition-colors hover:border-primary/50 hover:bg-primary/10",
+          disabled && "pointer-events-none opacity-70",
+        )}
+      >
+        <ImageUp className="h-8 w-8 text-primary" />
+        <span className="text-sm font-medium">Upload image</span>
+      </button>
+    </div>
+  );
 }
 
 export function ScanCardPanel({
   cardPreviews,
   scanning,
-  scanPhase,
   scanComplete,
   scanError,
   onPhotosSelected,
   onRetake,
 }: ScanCardPanelProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   if (scanComplete && cardPreviews.length > 0) {
     return (
       <div className="flex flex-col gap-4">
+        <CardCaptureInputs
+          cameraInputRef={cameraInputRef}
+          galleryInputRef={galleryInputRef}
+          onPhotosSelected={onPhotosSelected}
+        />
         <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           Card scanned — review details below
@@ -59,10 +126,16 @@ export function ScanCardPanel({
             />
           ))}
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={onRetake} className="self-start">
-          <RotateCcw className="h-4 w-4" />
-          Retake photo
-        </Button>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">Scan a different card?</p>
+          <CardCaptureActions
+            cameraInputRef={cameraInputRef}
+            galleryInputRef={galleryInputRef}
+          />
+          <Button type="button" variant="ghost" size="sm" onClick={onRetake} className="self-start">
+            Clear and start over
+          </Button>
+        </div>
       </div>
     );
   }
@@ -76,45 +149,28 @@ export function ScanCardPanel({
         </p>
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        multiple
-        className="hidden"
-        onChange={(e) => onPhotosSelected(e.target.files)}
+      <CardCaptureInputs
+        cameraInputRef={cameraInputRef}
+        galleryInputRef={galleryInputRef}
+        onPhotosSelected={onPhotosSelected}
       />
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={scanning}
-        className={cn(
-          "flex min-h-[140px] w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-6 transition-colors hover:border-primary/50 hover:bg-primary/10",
-          scanning && "pointer-events-none opacity-70",
-        )}
-      >
-        {scanning ? (
-          <>
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <span className="text-sm font-medium text-primary">
-              {scanStatusLabel(scanPhase)}
-            </span>
-            {scanStatusHint(scanPhase) ? (
-              <span className="max-w-[240px] text-center text-xs text-muted-foreground">
-                {scanStatusHint(scanPhase)}
-              </span>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <Camera className="h-10 w-10 text-primary" />
-            <span className="text-sm font-medium">Take photo or upload image</span>
-            <span className="text-xs text-muted-foreground">Tap to open camera or gallery</span>
-          </>
-        )}
-      </button>
+      {scanning ? (
+        <div
+          className={cn(
+            "flex min-h-[140px] w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-6",
+          )}
+        >
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <span className="text-sm font-medium text-primary">Extracting details…</span>
+        </div>
+      ) : (
+        <CardCaptureActions
+          disabled={scanning}
+          cameraInputRef={cameraInputRef}
+          galleryInputRef={galleryInputRef}
+        />
+      )}
 
       {cardPreviews.length > 0 && scanning ? (
         <div className="flex gap-2">
@@ -133,9 +189,23 @@ export function ScanCardPanel({
       {scanError ? (
         <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {scanError}
-          <button type="button" onClick={onRetake} className="ml-2 font-medium underline">
-            Retake photo
-          </button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="font-medium underline"
+            >
+              Take photo
+            </button>
+            <span className="text-destructive/60">·</span>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="font-medium underline"
+            >
+              Upload image
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

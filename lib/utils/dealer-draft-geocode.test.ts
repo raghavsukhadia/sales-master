@@ -5,7 +5,8 @@ import { applyGeocodeToDraft } from "./dealer-draft-geocode";
 describe("applyGeocodeToDraft", () => {
   it("fills empty city, state, and pincode from geocode details", () => {
     const patch = applyGeocodeToDraft(EMPTY_DEALER_DRAFT, {
-      locality: "Wardhaman Nagar",
+      address: "Shaniwari, Mominpura",
+      locality: "Shaniwari",
       city: "Nagpur",
       state: "Maharashtra",
       pincode: "440008",
@@ -15,8 +16,20 @@ describe("applyGeocodeToDraft", () => {
       city: "Nagpur",
       state: "Maharashtra",
       pincode: "440008",
-      address: "Wardhaman Nagar",
+      address: "Shaniwari, Mominpura",
     });
+  });
+
+  it("prefers full address line over locality when both are present", () => {
+    const patch = applyGeocodeToDraft(EMPTY_DEALER_DRAFT, {
+      address: "16, Main Road, Wardhaman Nagar",
+      locality: "Wardhaman Nagar",
+      city: "Nagpur",
+      state: "Maharashtra",
+      pincode: "440008",
+    });
+
+    expect(patch.address).toBe("16, Main Road, Wardhaman Nagar");
   });
 
   it("does not overwrite address when the user already typed one", () => {

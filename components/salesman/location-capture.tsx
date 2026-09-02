@@ -35,7 +35,6 @@ export function LocationCapture({
       async (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        onLocationChange({ lat, lng });
         setLocating(false);
         setGeocoding(true);
         const details = await reverseGeocodeDetails(lat, lng);

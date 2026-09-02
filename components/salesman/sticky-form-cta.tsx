@@ -22,7 +22,7 @@ export function StickyFormCta({
 }: StickyFormCtaProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="mx-auto flex max-w-md gap-2">
+      <div className="mx-auto flex max-w-md gap-2 md:max-w-5xl">
         {secondaryLabel && onSecondaryClick ? (
           <Button
             type="button"

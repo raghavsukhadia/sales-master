@@ -42,9 +42,10 @@ Set `NEXT_PUBLIC_APP_URL` to your production domain in Vercel (e.g. `https://sal
 1. Connect the repo to Vercel and deploy.
 2. Set all variables from `.env.example` in **Project → Settings → Environment Variables**.
 3. Set `NEXT_PUBLIC_APP_URL` to the production URL.
-4. Set `CRON_SECRET` — required for the WhatsApp processing cron in `vercel.json` (`/api/internal/process-whatsapp` every minute).
-5. Confirm Supabase migrations are applied on the production database.
-6. Create salesman accounts (see below) before handing the link to the field team.
+4. Set `GEMINI_API_KEY` — required for **Scan card** visiting-card extraction (Google AI Studio).
+5. Set `CRON_SECRET` — required for the WhatsApp processing cron in `vercel.json` (`/api/internal/process-whatsapp` every minute).
+6. Confirm Supabase migrations are applied on the production database.
+7. Create salesman accounts (see below) before handing the link to the field team.
 
 ## Onboarding a salesman
 
@@ -57,7 +58,7 @@ For manual SQL/bootstrap testing, see `docs/bootstrap-test-salesman-login.md`.
 
 ## Salesman app features
 
-- **Record Visit** (`/record-visit`) — scan visiting card, search/create dealer, log orders, GPS location
+- **Record Visit** (`/record-visit`) — scan visiting card (Gemini AI), search/create dealer, log orders, GPS location
 - **Visit History** (`/visit-history`) — past visits and details
 
 Legacy URL `/log-visit` redirects to `/record-visit`.

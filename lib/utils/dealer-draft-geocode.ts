@@ -20,7 +20,9 @@ export function applyGeocodeToDraft(
   if (!draft.pincode.trim() && details.pincode) {
     patch.pincode = details.pincode;
   }
-  if (!draft.address.trim() && details.locality) {
+  if (!draft.address.trim() && details.address) {
+    patch.address = details.address;
+  } else if (!draft.address.trim() && details.locality) {
     patch.address = details.locality;
   }
 
