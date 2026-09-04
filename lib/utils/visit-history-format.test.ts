@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   formatDealerAddressBlock,
+  formatFollowUpCardLine,
   formatFollowUpLabel,
   formatListLocation,
   formatOrderSummaryLine,
+  formatVisitCardDateTime,
   getVisitDateGroupLabel,
   groupVisitsByDateLabel,
 } from "./visit-history-format";
@@ -45,6 +47,27 @@ describe("formatOrderSummaryLine", () => {
         { productName: "Ceramic", quantity: 2 },
       ]),
     ).toBe("PPF · 100 pcs +1 more");
+  });
+});
+
+describe("formatVisitCardDateTime", () => {
+  it("returns absolute date and time with middle dot separator", () => {
+    const result = formatVisitCardDateTime("2026-09-01T10:35:00.000Z");
+    expect(result).toContain(" · ");
+    expect(result).toMatch(/01 .* 2026 · \d{1,2}:\d{2}/);
+  });
+});
+
+describe("formatFollowUpCardLine", () => {
+  it("returns empty-state copy when no active follow-up", () => {
+    expect(formatFollowUpCardLine("none", null)).toBe("No follow-up scheduled");
+    expect(formatFollowUpCardLine("completed", "2026-09-05")).toBe("No follow-up scheduled");
+    expect(formatFollowUpCardLine("pending", null)).toBe("No follow-up scheduled");
+  });
+
+  it("returns next follow-up line with short date for pending or overdue", () => {
+    expect(formatFollowUpCardLine("pending", "2026-09-05")).toBe("Next follow-up · 5 Sept 2026");
+    expect(formatFollowUpCardLine("overdue", "2026-09-04")).toBe("Next follow-up · 4 Sept 2026");
   });
 });
 

@@ -43,6 +43,12 @@ import { StickyFormCta } from "@/components/salesman/sticky-form-cta";
 import { VisitSuccessScreen } from "@/components/salesman/visit-success-screen";
 import { CompactDealerChip } from "@/components/salesman/compact-dealer-chip";
 import { OrderPlacementToggle } from "@/components/salesman/order-placement-toggle";
+import {
+  EMPTY_NEXT_ACTION_STATE,
+  NextActionSection,
+  type NextActionState,
+} from "@/components/salesman/record-visit/next-action-section";
+import { isNextActionReadyToSave } from "@/lib/validations/visit-next-action";
 
 const MAX_CARD_PHOTOS = 2;
 
@@ -73,6 +79,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
 
   const [orderPlacement, setOrderPlacement] = useState<OrderPlacement>(null);
   const [orderLines, setOrderLines] = useState<OrderLineRow[]>([createEmptyOrderLine()]);
+  const [nextAction, setNextAction] = useState<NextActionState>(EMPTY_NEXT_ACTION_STATE);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [recordedAt, setRecordedAt] = useState<Date | null>(null);
@@ -80,6 +87,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
   const [savedVisitNumber, setSavedVisitNumber] = useState("");
   const [savedHasOrder, setSavedHasOrder] = useState(false);
   const [savedItemCount, setSavedItemCount] = useState(0);
+  const [savedNextActionLabel, setSavedNextActionLabel] = useState<string | null>(null);
 
   const [fieldTouched, setFieldTouched] = useState<DealerDraftTouched>(EMPTY_DEALER_DRAFT_TOUCHED);
 
@@ -170,12 +178,14 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
     setPossibleDuplicateDealers([]);
     setOrderPlacement(null);
     setOrderLines([createEmptyOrderLine()]);
+    setNextAction(EMPTY_NEXT_ACTION_STATE);
     setSubmitError(null);
     setRecordedAt(null);
     setSavedDealerName("");
     setSavedVisitNumber("");
     setSavedHasOrder(false);
     setSavedItemCount(0);
+    setSavedNextActionLabel(null);
     setFieldTouched(EMPTY_DEALER_DRAFT_TOUCHED);
   }
 
@@ -291,7 +301,13 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
         : draft.dealerName;
 
   const hasOrder = orderPlacement === "yes";
-  const canSaveStep2 = canSubmitOrderStepFromLines(orderPlacement, orderLines);
+  const canSaveStep2 =
+    canSubmitOrderStepFromLines(orderPlacement, orderLines) &&
+    isNextActionReadyToSave({
+      type: nextAction.type,
+      dueDate: nextAction.dueDate || undefined,
+      customDescription: nextAction.customDescription,
+    });
 
   async function handleSubmit() {
     setSubmitError(null);
@@ -299,6 +315,15 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
       resolvedDealer?.source === "new" ? resolvedDealer.draft : draft;
 
     const normalizedLines = hasOrder ? normalizeOrderLines(orderLines) : [];
+    const nextActionPayload = {
+      type: nextAction.type,
+      dueDate: nextAction.type === "none" ? undefined : nextAction.dueDate || undefined,
+      note: nextAction.note.trim() || undefined,
+      customDescription:
+        nextAction.type === "other"
+          ? nextAction.customDescription.trim() || undefined
+          : undefined,
+    };
     const validation =
       resolvedDealer?.source === "existing"
         ? recordVisitSchema.safeParse({
@@ -306,6 +331,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
             dealerId: resolvedDealer.dealerId,
             hasOrder,
             orderLines: normalizedLines,
+            nextAction: nextActionPayload,
           })
         : recordVisitSchema.safeParse({
             dealerMode: "new",
@@ -320,6 +346,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
             longitude: activeDraft.location?.lng,
             hasOrder,
             orderLines: normalizedLines,
+            nextAction: nextActionPayload,
           });
 
     if (!validation.success) {
@@ -359,6 +386,16 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
         })),
       ),
     );
+    formData.set("nextActionType", nextAction.type);
+    if (nextActionPayload.dueDate) {
+      formData.set("nextActionDueDate", nextActionPayload.dueDate);
+    }
+    if (nextActionPayload.note) {
+      formData.set("nextActionNote", nextActionPayload.note);
+    }
+    if (nextActionPayload.customDescription) {
+      formData.set("nextActionCustomDescription", nextActionPayload.customDescription);
+    }
     cardPhotos.forEach((file, index) => {
       formData.set(`cardImage${index}`, file);
     });
@@ -375,6 +412,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
       setSavedVisitNumber(result.visitNumber ?? "");
       setSavedHasOrder(hasOrder);
       setSavedItemCount(result.itemCount ?? countFilledOrderLines(orderLines));
+      setSavedNextActionLabel(result.nextActionSummary ?? null);
       setRecordedAt(new Date());
       setStep("success");
     } else {
@@ -390,6 +428,7 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
         hasOrder={savedHasOrder}
         itemCount={savedItemCount}
         recordedAt={recordedAt}
+        nextActionLabel={savedNextActionLabel}
         onRecordAnother={resetForm}
       />
     );
@@ -500,6 +539,10 @@ export function RecordVisitForm({ products }: RecordVisitFormProps) {
               onChange={setOrderLines}
               orderPlacement={orderPlacement}
             />
+
+            {orderPlacement ? (
+              <NextActionSection value={nextAction} onChange={setNextAction} />
+            ) : null}
 
             {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
           </div>

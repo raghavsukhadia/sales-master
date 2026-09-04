@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import type { VisitHistoryItem } from "@/lib/types/visit-history";
 import {
-  formatFollowUpLabel,
+  formatFollowUpCardLine,
   formatListLocation,
-  formatVisitDateTime,
+  formatVisitCardDateTime,
 } from "@/lib/utils/visit-history-format";
+import { cn } from "@/lib/utils";
 import { VisitStatusChip } from "./visit-status-chip";
 
 interface VisitCardProps {
@@ -15,73 +15,49 @@ interface VisitCardProps {
 }
 
 export function VisitCard({ visit }: VisitCardProps) {
-  const { combined } = formatVisitDateTime(visit.visitedAt);
   const location = formatListLocation(visit.city, visit.state);
-  const followUpLabel = formatFollowUpLabel(visit.followUpStatus, visit.followUpDate);
-  const showFollowUpProminent =
-    visit.followUpStatus === "pending" || visit.followUpStatus === "overdue";
-  const primaryItem = visit.items[0];
+  const visitDateTime = formatVisitCardDateTime(visit.visitedAt);
+  const followUpLine = formatFollowUpCardLine(visit.followUpStatus, visit.followUpDate);
+  const isOverdue = visit.followUpStatus === "overdue";
 
   return (
     <Link
       href={`/visit-history/${visit.id}`}
-      className="group block rounded-xl border border-border/60 bg-white px-4 py-3 shadow-sm transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group block rounded-xl border border-border/60 bg-white px-4 py-3 shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="truncate text-base font-semibold">{visit.dealerName}</p>
-            <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden />
-          </div>
-
+      <div className="grid grid-cols-[1fr_auto] items-start gap-x-3 gap-y-0.5">
+        <div className="min-w-0">
+          <p className="truncate font-semibold">{visit.dealerName}</p>
           {location !== "—" ? (
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">{location}</p>
+            <p className="truncate text-sm text-muted-foreground">{location}</p>
           ) : null}
+        </div>
 
-          <p className="mt-1 text-xs text-muted-foreground">{combined}</p>
-
-          <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="shrink-0 text-right">
+          <p className="text-xs text-muted-foreground sm:text-sm">{visitDateTime}</p>
+          <div className="mt-1 flex justify-end">
             <VisitStatusChip
               label={visit.orderPlaced ? "Order placed" : "No order"}
               variant={visit.orderPlaced ? "order" : "no-order"}
             />
-            {showFollowUpProminent ? (
-              <VisitStatusChip
-                label={visit.followUpStatus === "overdue" ? "Overdue" : "Follow-up due"}
-                variant={
-                  visit.followUpStatus === "overdue" ? "follow-up-overdue" : "follow-up-pending"
-                }
-              />
-            ) : null}
           </div>
-
-          {showFollowUpProminent ? (
-            <p
-              className={
-                visit.followUpStatus === "overdue"
-                  ? "mt-2 text-sm font-medium text-red-700"
-                  : "mt-2 text-sm font-medium text-amber-800"
-              }
-            >
-              {followUpLabel}
-            </p>
-          ) : null}
-
-          {visit.orderPlaced && primaryItem ? (
-            <div className="mt-2 text-sm">
-              <p className="font-medium">{primaryItem.productName}</p>
-              <p className="text-muted-foreground">
-                {primaryItem.quantity} {primaryItem.unit ?? "pcs"}
-              </p>
-            </div>
-          ) : null}
-
-          {visit.salespersonName ? (
-            <p className="mt-2 text-xs text-muted-foreground">Visited by {visit.salespersonName}</p>
-          ) : null}
-
-          <p className="mt-2 text-xs font-medium text-primary">View details →</p>
         </div>
+      </div>
+
+      <div className="mt-2.5 grid grid-cols-[1fr_auto] items-center gap-x-3">
+        <p
+          className={cn(
+            "min-w-0 truncate text-sm",
+            isOverdue
+              ? "rounded-md bg-red-50/60 px-2 py-0.5 text-red-700"
+              : "text-muted-foreground",
+          )}
+        >
+          {followUpLine}
+        </p>
+        <span className="shrink-0 whitespace-nowrap text-right text-sm text-muted-foreground group-hover:text-foreground">
+          View details →
+        </span>
       </div>
     </Link>
   );

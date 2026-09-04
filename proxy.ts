@@ -12,6 +12,7 @@ const PROTECTED_PATHS = [
   "/distributors",
   "/visits",
   "/followups",
+  "/followups-management",
   "/opportunities",
   "/log-visit",
   "/record-visit",

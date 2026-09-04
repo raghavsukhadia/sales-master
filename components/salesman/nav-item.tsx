@@ -11,6 +11,8 @@ interface NavItemProps {
   active?: boolean;
   disabled?: boolean;
   comingSoon?: boolean;
+  /** Optional count badge (e.g. scheduled follow-ups). Hidden when 0 / undefined. */
+  badgeCount?: number;
   onNavigate?: () => void;
   variant?: "drawer" | "bar";
 }
@@ -22,10 +24,13 @@ export function NavItem({
   active,
   disabled,
   comingSoon,
+  badgeCount,
   onNavigate,
   variant = "drawer",
 }: NavItemProps) {
   const isBar = variant === "bar";
+  const showBadge = typeof badgeCount === "number" && badgeCount > 0;
+  const badgeLabel = showBadge ? (badgeCount > 99 ? "99+" : String(badgeCount)) : null;
 
   const className = cn(
     "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
@@ -43,6 +48,17 @@ export function NavItem({
       {comingSoon ? (
         <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
           Coming soon
+        </span>
+      ) : null}
+      {badgeLabel ? (
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground tabular-nums",
+            isBar ? "min-w-5 px-1.5 py-0.5 text-[10px]" : "min-w-6 px-1.5 py-0.5 text-[11px]",
+          )}
+          aria-label={`${badgeCount} scheduled follow-ups`}
+        >
+          {badgeLabel}
         </span>
       ) : null}
     </>

@@ -60,8 +60,15 @@ For manual SQL/bootstrap testing, see `docs/bootstrap-test-salesman-login.md`.
 
 - **Record Visit** (`/record-visit`) — scan visiting card (Gemini AI), search/create dealer, log orders, GPS location
 - **Visit History** (`/visit-history`) — past visits and details
+- **Follow-ups** (`/followups`) — pending dealer follow-ups grouped as Overdue / Due Today / Upcoming; tap **Call Dealer** to open the phone dialer, then **Record Outcome** to complete the follow-up and optionally schedule the next one
 
 Legacy URL `/log-visit` redirects to `/record-visit`.
+
+Management follow-ups (stub) live at `/followups-management` until the full manager module ships.
+
+### Follow-up call outcome schema
+
+The `followups` table stores workflow status (`pending` / `completed` / `cancelled`) separately from call outcome (`interested`, `call_again`, `send_quotation`, `no_answer`, `not_interested`). Optional notes use `completion_notes`. Next follow-ups link back via `parent_followup_id`. Migration: `supabase/migrations/20260902120001_followup_call_outcome.sql`.
 
 ## Scripts
 

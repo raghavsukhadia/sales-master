@@ -8,6 +8,7 @@ import {
   ClipboardList,
   History,
   LogOut,
+  PhoneCall,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SalesMasterLogo } from "@/components/branding/sales-master-logo";
@@ -15,34 +16,52 @@ import { AppHeader, type SalesmanNavConfigItem } from "@/components/salesman/app
 import { NavItem } from "@/components/salesman/nav-item";
 import { NavigationDrawer } from "@/components/salesman/navigation-drawer";
 
-const NAV_ITEMS: SalesmanNavConfigItem[] = [
-  {
-    href: "/record-visit",
-    label: "Record Visit",
-    icon: ClipboardList,
-    enabled: true,
-    matchPaths: ["/record-visit"],
-  },
-  {
-    href: "/visit-history",
-    label: "Visit History",
-    icon: History,
-    enabled: true,
-    matchPaths: ["/visit-history"],
-  },
-  { href: "/reports", label: "Reports", icon: BarChart3, enabled: false },
-  { href: "/our-details", label: "Our Details", icon: Building2, enabled: false },
-];
+function buildNavItems(followupsCount: number): SalesmanNavConfigItem[] {
+  return [
+    {
+      href: "/record-visit",
+      label: "Record Visit",
+      icon: ClipboardList,
+      enabled: true,
+      matchPaths: ["/record-visit"],
+    },
+    {
+      href: "/visit-history",
+      label: "Visit History",
+      icon: History,
+      enabled: true,
+      matchPaths: ["/visit-history"],
+    },
+    {
+      href: "/followups",
+      label: "Follow-ups",
+      icon: PhoneCall,
+      enabled: true,
+      matchPaths: ["/followups"],
+      badgeCount: followupsCount,
+    },
+    { href: "/reports", label: "Reports", icon: BarChart3, enabled: false },
+    { href: "/our-details", label: "Our Details", icon: Building2, enabled: false },
+  ];
+}
 
 interface SalesmanNavProps {
   salesmanName: string;
   roleLabel: string;
   signOutAction: () => void;
+  /** Open (pending) follow-ups for the Follow-ups nav badge. */
+  followupsCount?: number;
 }
 
-export function SalesmanNav({ salesmanName, roleLabel, signOutAction }: SalesmanNavProps) {
+export function SalesmanNav({
+  salesmanName,
+  roleLabel,
+  signOutAction,
+  followupsCount = 0,
+}: SalesmanNavProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const navItems = buildNavItems(followupsCount);
 
   const initials = salesmanName
     .split(/\s+/)
@@ -65,7 +84,7 @@ export function SalesmanNav({ salesmanName, roleLabel, signOutAction }: Salesman
       <AppHeader
         menuOpen={drawerOpen}
         onMenuToggle={() => setDrawerOpen((open) => !open)}
-        navItems={NAV_ITEMS}
+        navItems={navItems}
         isActive={isActive}
         salesmanName={salesmanName}
         roleLabel={roleLabel}
@@ -87,7 +106,7 @@ export function SalesmanNav({ salesmanName, roleLabel, signOutAction }: Salesman
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavItem
               key={item.href}
               label={item.label}
@@ -96,6 +115,7 @@ export function SalesmanNav({ salesmanName, roleLabel, signOutAction }: Salesman
               active={item.enabled && isActive(item)}
               disabled={!item.enabled}
               comingSoon={!item.enabled}
+              badgeCount={item.badgeCount}
               onNavigate={closeDrawer}
             />
           ))}

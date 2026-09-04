@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: "/salesmen", label: "Salesmen" },
   { href: "/distributors", label: "Distributors" },
   { href: "/visits", label: "Visits" },
-  { href: "/followups", label: "Follow-ups" },
+  { href: "/followups-management", label: "Follow-ups" },
   { href: "/opportunities", label: "Opportunities" },
 ];
 

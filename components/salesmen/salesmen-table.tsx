@@ -1,7 +1,6 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface SalesmanRow {
   id: string;
@@ -14,9 +13,19 @@ export interface SalesmanRow {
 
 interface SalesmenTableProps {
   salesmen: SalesmanRow[];
+  busyId: string | null;
+  onEdit: (salesman: SalesmanRow) => void;
+  onToggleActive: (salesman: SalesmanRow) => void;
+  onDelete: (salesman: SalesmanRow) => void;
 }
 
-export function SalesmenTable({ salesmen }: SalesmenTableProps) {
+export function SalesmenTable({
+  salesmen,
+  busyId,
+  onEdit,
+  onToggleActive,
+  onDelete,
+}: SalesmenTableProps) {
   if (salesmen.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -34,27 +43,63 @@ export function SalesmenTable({ salesmen }: SalesmenTableProps) {
             <th className="px-4 py-3 text-left font-medium">Phone</th>
             <th className="px-4 py-3 text-left font-medium">Email</th>
             <th className="px-4 py-3 text-left font-medium">Status</th>
+            <th className="px-4 py-3 text-right font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {salesmen.map((salesman) => (
-            <tr key={salesman.id} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{salesman.full_name}</td>
-              <td className="px-4 py-3">{salesman.phone_number}</td>
-              <td className="px-4 py-3">{salesman.email ?? "—"}</td>
-              <td className="px-4 py-3">
-                <span
-                  className={
-                    salesman.is_active
-                      ? "text-green-700 dark:text-green-400"
-                      : "text-muted-foreground"
-                  }
-                >
-                  {salesman.is_active ? "Active" : "Inactive"}
-                </span>
-              </td>
-            </tr>
-          ))}
+          {salesmen.map((salesman) => {
+            const isBusy = busyId === salesman.id;
+            return (
+              <tr key={salesman.id} className="border-b last:border-b-0">
+                <td className="px-4 py-3">{salesman.full_name}</td>
+                <td className="px-4 py-3">{salesman.phone_number}</td>
+                <td className="px-4 py-3">{salesman.email ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={
+                      salesman.is_active
+                        ? "text-green-700 dark:text-green-400"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {salesman.is_active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isBusy}
+                      onClick={() => onEdit(salesman)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isBusy}
+                      onClick={() => onToggleActive(salesman)}
+                    >
+                      {salesman.is_active ? "Inactive" : "Activate"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isBusy}
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => onDelete(salesman)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

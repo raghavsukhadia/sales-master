@@ -24,7 +24,7 @@ export async function login(formData: FormData) {
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
-    .select("role")
+    .select("role, is_active")
     .eq("id", signInData.user.id)
     .single();
 
@@ -34,11 +34,31 @@ export async function login(formData: FormData) {
     redirect(`/login?notice=${encodeURIComponent("access-denied")}`);
   }
 
+  if (profile.is_active === false) {
+    await supabase.auth.signOut();
+    redirect(
+      `/login?error=${encodeURIComponent("Your account is inactive. Contact an admin.")}`,
+    );
+  }
+
   if (profile.role === "admin" || profile.role === "manager") {
     redirect("/dashboard");
   }
 
   if (profile.role === "salesman") {
+    const { data: salesman } = await supabase
+      .from("salesmen")
+      .select("is_active")
+      .eq("user_id", signInData.user.id)
+      .maybeSingle();
+
+    if (salesman && salesman.is_active === false) {
+      await supabase.auth.signOut();
+      redirect(
+        `/login?error=${encodeURIComponent("Your account is inactive. Contact an admin.")}`,
+      );
+    }
+
     // ADR-005 (Revised): WhatsApp stays primary, but a salesman can now
     // fall back to this minimal web visit-logging form.
     redirect("/record-visit");

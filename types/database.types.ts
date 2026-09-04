@@ -471,6 +471,8 @@ export type Database = {
           description: string
           due_date: string
           id: string
+          outcome: Database["public"]["Enums"]["followup_outcome"] | null
+          parent_followup_id: string | null
           priority: Database["public"]["Enums"]["priority_level"]
           salesman_id: string
           source: Database["public"]["Enums"]["visit_source"]
@@ -487,6 +489,8 @@ export type Database = {
           description: string
           due_date: string
           id?: string
+          outcome?: Database["public"]["Enums"]["followup_outcome"] | null
+          parent_followup_id?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
           salesman_id: string
           source?: Database["public"]["Enums"]["visit_source"]
@@ -503,6 +507,8 @@ export type Database = {
           description?: string
           due_date?: string
           id?: string
+          outcome?: Database["public"]["Enums"]["followup_outcome"] | null
+          parent_followup_id?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
           salesman_id?: string
           source?: Database["public"]["Enums"]["visit_source"]
@@ -529,6 +535,13 @@ export type Database = {
             columns: ["dealer_id"]
             isOneToOne: false
             referencedRelation: "dealers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followups_parent_followup_id_fkey"
+            columns: ["parent_followup_id"]
+            isOneToOne: false
+            referencedRelation: "followups"
             referencedColumns: ["id"]
           },
           {
@@ -1255,6 +1268,12 @@ export type Database = {
         | "needs_clarification"
         | "not_actionable"
       extraction_status: "pending" | "applied" | "rejected" | "needs_review"
+      followup_outcome:
+        | "interested"
+        | "call_again"
+        | "send_quotation"
+        | "no_answer"
+        | "not_interested"
       followup_status: "pending" | "completed" | "cancelled"
       interest_level: "low" | "medium" | "high"
       location_source:
@@ -1407,6 +1426,13 @@ export const Constants = {
         "not_actionable",
       ],
       extraction_status: ["pending", "applied", "rejected", "needs_review"],
+      followup_outcome: [
+        "interested",
+        "call_again",
+        "send_quotation",
+        "no_answer",
+        "not_interested",
+      ],
       followup_status: ["pending", "completed", "cancelled"],
       interest_level: ["low", "medium", "high"],
       location_source: [

@@ -10,7 +10,7 @@ type ChipVariant =
   | "dealer-existing";
 
 const VARIANTS: Record<ChipVariant, string> = {
-  order: "bg-primary/10 text-primary ring-1 ring-primary/15",
+  order: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200",
   "no-order": "bg-muted text-muted-foreground",
   "follow-up-pending": "bg-amber-50 text-amber-900 ring-1 ring-amber-200",
   "follow-up-overdue": "bg-red-50 text-red-700 ring-1 ring-red-200",

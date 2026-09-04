@@ -30,6 +30,30 @@ export function formatVisitDateShort(iso: string): string {
   });
 }
 
+export function formatVisitCardDateTime(iso: string): string {
+  const date = new Date(iso);
+  const datePart = date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const timePart = date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  return `${datePart} · ${timePart}`;
+}
+
+export function formatFollowUpCardLine(
+  status: "none" | "pending" | "completed" | "overdue",
+  dueDate?: string | null,
+): string {
+  if (status === "none" || status === "completed" || !dueDate) {
+    return "No follow-up scheduled";
+  }
+  if (status === "pending" || status === "overdue") {
+    return `Next follow-up · ${formatVisitDateShort(dueDate)}`;
+  }
+  return "No follow-up scheduled";
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",

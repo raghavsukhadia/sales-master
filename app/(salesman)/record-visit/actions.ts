@@ -10,6 +10,7 @@ import {
 } from "@/lib/business/dealers";
 import { matchDealer } from "@/lib/business/dealer-matching";
 import { uploadVisitAttachment } from "@/lib/business/attachments";
+import { createFollowupFromVisit } from "@/lib/business/followups";
 import { extractFromVisitingCardImages } from "@/lib/ai/visiting-card-extractor";
 import { normalizeIndianMobile } from "@/lib/utils/phone";
 import {
@@ -17,6 +18,11 @@ import {
   parseRecordVisitPayload,
   type RecordVisitInput,
 } from "@/lib/validations/record-visit";
+import {
+  buildVisitFollowupDescription,
+  formatNextActionSummary,
+  type VisitNextActionInput,
+} from "@/lib/validations/visit-next-action";
 import {
   visitingCardExtractionToFormFields,
   type VisitingCardExtraction,
@@ -156,6 +162,30 @@ export interface SubmitRecordVisitResult {
   error?: string;
   visitNumber?: string;
   itemCount?: number;
+  followupCreated?: boolean;
+  nextActionSummary?: string;
+}
+
+function parseNextActionFromFormData(formData: FormData): VisitNextActionInput {
+  const typeRaw = formData.get("nextActionType");
+  const type = typeof typeRaw === "string" && typeRaw ? typeRaw : "none";
+  const dueDateRaw = formData.get("nextActionDueDate");
+  const noteRaw = formData.get("nextActionNote");
+  const customRaw = formData.get("nextActionCustomDescription");
+
+  return {
+    type: type as VisitNextActionInput["type"],
+    dueDate:
+      typeof dueDateRaw === "string" && dueDateRaw.trim()
+        ? dueDateRaw.trim()
+        : undefined,
+    note:
+      typeof noteRaw === "string" && noteRaw.trim() ? noteRaw.trim() : undefined,
+    customDescription:
+      typeof customRaw === "string" && customRaw.trim()
+        ? customRaw.trim()
+        : undefined,
+  };
 }
 
 function parseFormData(formData: FormData): RecordVisitInput {
@@ -176,6 +206,7 @@ function parseFormData(formData: FormData): RecordVisitInput {
   }
 
   const orderLines = hasOrder ? normalizeOrderLines(orderRows) : [];
+  const nextAction = parseNextActionFromFormData(formData);
 
   if (dealerMode === "existing") {
     return parseRecordVisitPayload({
@@ -183,6 +214,7 @@ function parseFormData(formData: FormData): RecordVisitInput {
       dealerId: formData.get("dealerId"),
       hasOrder,
       orderLines,
+      nextAction,
     });
   }
 
@@ -216,6 +248,7 @@ function parseFormData(formData: FormData): RecordVisitInput {
       typeof longitudeRaw === "string" && longitudeRaw ? Number(longitudeRaw) : undefined,
     hasOrder,
     orderLines,
+    nextAction,
   });
 }
 
@@ -426,5 +459,50 @@ export async function submitRecordVisitAction(
     }
   }
 
-  return { success: true, visitNumber, itemCount };
+  let followupCreated = false;
+  let nextActionSummary: string | undefined;
+
+  if (payload.nextAction.type !== "none") {
+    const description = buildVisitFollowupDescription(
+      payload.nextAction.type,
+      payload.nextAction.customDescription,
+      payload.nextAction.note,
+    );
+    const dueDate = payload.nextAction.dueDate!;
+
+    const followupResult = await createFollowupFromVisit(supabase, {
+      userId: user.id,
+      salesmanId,
+      dealerId,
+      visitId: visit.id,
+      description,
+      dueDate,
+    });
+
+    if (!followupResult.success) {
+      return {
+        success: false,
+        error:
+          followupResult.error ??
+          "Visit saved, but the follow-up could not be created. Open Follow-ups or try again.",
+        visitNumber,
+        itemCount,
+      };
+    }
+
+    followupCreated = true;
+    nextActionSummary = formatNextActionSummary(
+      payload.nextAction.type,
+      dueDate,
+      payload.nextAction.customDescription,
+    );
+  }
+
+  return {
+    success: true,
+    visitNumber,
+    itemCount,
+    followupCreated,
+    nextActionSummary,
+  };
 }

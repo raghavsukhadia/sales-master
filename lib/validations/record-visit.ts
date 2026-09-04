@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { findDuplicateCatalogProduct, findDuplicateCustomName } from "@/lib/business/order-lines";
 import { INDIAN_MOBILE_REGEX, normalizeIndianMobile } from "@/lib/validations/dealer-draft";
+import {
+  visitNextActionSchema,
+  type VisitNextActionInput,
+} from "@/lib/validations/visit-next-action";
 
 export const orderLineSchema = z.object({
   productId: z.string().uuid().nullable(),
@@ -53,6 +57,8 @@ const orderLinesRefinement = (data: { hasOrder: boolean; orderLines: z.infer<typ
   }
 };
 
+const nextActionField = visitNextActionSchema.default({ type: "none" });
+
 const newDealerSchema = z
   .object({
     dealerMode: z.literal("new"),
@@ -83,6 +89,7 @@ const newDealerSchema = z
     longitude: z.number().optional(),
     hasOrder: z.boolean(),
     orderLines: z.array(orderLineSchema),
+    nextAction: nextActionField,
   })
   .superRefine(orderLinesRefinement);
 
@@ -92,6 +99,7 @@ const existingDealerSchema = z
     dealerId: z.string().uuid("Invalid dealer"),
     hasOrder: z.boolean(),
     orderLines: z.array(orderLineSchema),
+    nextAction: nextActionField,
   })
   .superRefine(orderLinesRefinement);
 
@@ -102,6 +110,7 @@ export const recordVisitSchema = z.discriminatedUnion("dealerMode", [
 
 export type OrderLineInput = z.infer<typeof orderLineSchema>;
 export type RecordVisitInput = z.infer<typeof recordVisitSchema>;
+export type { VisitNextActionInput };
 
 /** Sum of unit_price × quantity for display and validation helpers. */
 export function calculateOrderTotal(lines: Pick<OrderLineInput, "unitPrice" | "quantity">[]): number {

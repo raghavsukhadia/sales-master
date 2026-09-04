@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface VisitSuccessScreenProps {
   dealerName: string;
@@ -9,6 +11,7 @@ interface VisitSuccessScreenProps {
   hasOrder: boolean;
   itemCount: number;
   recordedAt: Date;
+  nextActionLabel?: string | null;
   onRecordAnother: () => void;
 }
 
@@ -18,6 +21,7 @@ export function VisitSuccessScreen({
   hasOrder,
   itemCount,
   recordedAt,
+  nextActionLabel,
   onRecordAnother,
 }: VisitSuccessScreenProps) {
   const timeLabel = recordedAt.toLocaleTimeString("en-IN", {
@@ -43,10 +47,25 @@ export function VisitSuccessScreen({
           Today at {timeLabel}
           {orderLabel}
         </p>
+        {nextActionLabel ? (
+          <p className="mt-2 text-sm font-medium text-foreground">
+            Next action: {nextActionLabel}
+          </p>
+        ) : null}
       </div>
-      <Button size="lg" onClick={onRecordAnother} className="w-full max-w-xs">
-        Record another visit
-      </Button>
+      <div className="flex w-full max-w-xs flex-col gap-3">
+        {nextActionLabel ? (
+          <Link
+            href="/followups"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}
+          >
+            View follow-ups
+          </Link>
+        ) : null}
+        <Button size="lg" onClick={onRecordAnother} className="w-full">
+          Record another visit
+        </Button>
+      </div>
     </div>
   );
 }

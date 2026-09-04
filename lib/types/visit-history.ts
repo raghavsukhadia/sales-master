@@ -37,6 +37,8 @@ export interface VisitHistoryItem {
   latitude?: number | null;
   longitude?: number | null;
   locationCaptured: boolean;
+  /** Present when selected; admin Visit Activity always populates this. */
+  source?: "web" | "whatsapp";
 }
 
 export interface VisitHistorySummary {

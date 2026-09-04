@@ -13,6 +13,7 @@ export interface SalesmanNavConfigItem {
   icon: LucideIcon;
   enabled: boolean;
   matchPaths?: string[];
+  badgeCount?: number;
 }
 
 interface AppHeaderProps {
@@ -59,6 +60,7 @@ export function AppHeader({
               active={item.enabled && isActive(item)}
               disabled={!item.enabled}
               comingSoon={!item.enabled}
+              badgeCount={item.badgeCount}
             />
           ))}
         </nav>

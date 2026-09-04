@@ -123,6 +123,56 @@ describe("recordVisitSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("defaults nextAction to none when omitted", () => {
+    const result = recordVisitSchema.safeParse(validNewPayload);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.nextAction.type).toBe("none");
+    }
+  });
+
+  it("accepts call_dealer next action with due date on order visit", () => {
+    const result = recordVisitSchema.safeParse({
+      ...validExistingPayload,
+      nextAction: { type: "call_dealer", dueDate: "2099-01-15" },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts next action on no-order visit", () => {
+    const result = recordVisitSchema.safeParse({
+      ...validNewPayload,
+      hasOrder: false,
+      orderLines: [],
+      nextAction: { type: "send_quotation", dueDate: "2099-01-15" },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects next action without due date", () => {
+    const result = recordVisitSchema.safeParse({
+      ...validExistingPayload,
+      nextAction: { type: "call_dealer" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects past due date on next action", () => {
+    const result = recordVisitSchema.safeParse({
+      ...validExistingPayload,
+      nextAction: { type: "call_dealer", dueDate: "2020-01-01" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects other without custom description", () => {
+    const result = recordVisitSchema.safeParse({
+      ...validExistingPayload,
+      nextAction: { type: "other", dueDate: "2099-01-15" },
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("calculateOrderTotal", () => {
